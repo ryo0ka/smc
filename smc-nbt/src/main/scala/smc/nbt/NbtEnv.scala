@@ -4,6 +4,7 @@ import pickler._
 import scala.collection.immutable._
 import scala.reflect.runtime.universe._
 
+//TODO BytesI/O may not be the best solution for performance.
 final class NbtEnv(base: BasePicklers) extends StrictEnum {
 
 	sealed trait NbtSpecN extends StrictElem {
@@ -50,12 +51,14 @@ final class NbtEnv(base: BasePicklers) extends StrictEnum {
 
 	object Nbt extends Pickler[NbtN] {
 		override val pickle: Pickle[NbtN] = { n =>
-			NbtSpec.pickle(n.spec) ++ n.spec.pickler.pickle(n.value)
+			val spec = NbtSpec.pickle(n.spec)
+			val body = n.spec.pickler.pickle(n.value)
+			spec ++ body
 		}
 		override val unpickle: Unpickle[NbtN] = { in =>
 			val spec = NbtSpec.unpickle(in)
-			val value = spec.pickler.unpickle(in)
-			Nbt(value)(spec): NbtN
+			val body = spec.pickler.unpickle(in)
+			Nbt(body)(spec): NbtN
 		}
 	}
 
@@ -98,7 +101,8 @@ final class NbtEnv(base: BasePicklers) extends StrictEnum {
 		}
 		override val unpickle: Unpickle[Seq[T]] = { in =>
 			val size = base.int.unpickle(in)
-			Seq.fill(size)(p.unpickle(in))
+			def body = p.unpickle(in)
+			Seq.fill(size)(body)
 		}
 	}
 
@@ -140,8 +144,9 @@ final class NbtEnv(base: BasePicklers) extends StrictEnum {
 			body.toStream ++ end
 		}
 		override val unpickle: Unpickle[NbtMap] = { in =>
-			Stream(EntryPickler.unpickle(in))
-				.takeWhile(_._2.spec != NbtEnd).toMap
+			def body = EntryPickler.unpickle(in)
+			def notEnd(e: Entry) = e._2.spec != NbtEnd
+			Stream.continually(body).takeWhile(notEnd).toMap
 		}
 	}
 

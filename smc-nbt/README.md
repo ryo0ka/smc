@@ -1,42 +1,50 @@
-ehg-nbt (W.I.P)
+ehg-nbt
 ===
 
 Minecraft NBT (Named Binary Tag) functions in Scala.
 
-Reference: [Minecraft Wiki: NBT format](http://minecraft.gamepedia.com/NBT_format) (11/15/2014)
+ehg-nbt supports NBT serialization and type-safe operations.
 
-	//Setup environment
+Code Example
+---
+
+	//Setting up the environment
 	import smc.nbt._
-	val base: pickle.BasePicklers = ???
+	val base: pickler.BasePicklers = ???
 	val e = new NbtEnv(base)
 	import e._
 
-	//Extract tags from byte stream
+	//Extracting a tag from a byte stream
 	val i: Iterator[Byte] = ???
 	val n: NbtN = Nbt.unpickle(i)
 
-	//Convert tags to byte stream
+	//Converting a tag into a byte stream
 	val n: NbtN = ???
 	val o: Seq[Byte] = Nbt.pickle(n)
 
-	//Extract values from tags
+	//Extracting a tag's value
 	val n: NbtN = ???
 	val root: NbtMap = n[NbtMap]
+	val foo = n[Regex] //Compile error; Regex is not of NBT type
 
-	//Extract values safely
+	//Extracting the value safely
 	val n: NbtN = ???
 	val root: Option[NbtMap] = n.as[NbtMap]
 
-	//Construct tags
+	//Constructing tags
 	val version: Nbt[Int] = 19133
 	val level: Nbt[NbtMap] = NbtMap(
 	  "version" -> version,
 	  "LevelName" -> "New World"
-	  "foo" -> "".r //compile error; Regex is not of NBT type.
+	  "initialized" -> true.toByte
+	  "foo" -> "".r //Compile error; Regex is not of NBT type
 	)
 	val out: Seq[Byte] = Nbt.pickle(level)
 
-|original name|in smc-nbt|
+API Directions
+---
+
+|Original name|In smc-nbt|
 |:--|:--|
 |TAG_End|NbtEnd (invisible)|
 |TAG_Byte|NbtByte|
@@ -50,3 +58,8 @@ Reference: [Minecraft Wiki: NBT format](http://minecraft.gamepedia.com/NBT_forma
 |TAG_List|NbtSeq|
 |TAG_Compound|NbtMap|
 |TAG_Int_Array|NbtInts|
+
+External References
+---
+
+- [Minecraft Wiki: NBT format](http://minecraft.gamepedia.com/NBT_format) (11/15/2014)
