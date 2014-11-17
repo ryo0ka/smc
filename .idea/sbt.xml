@@ -31,6 +31,10 @@
         <option name="useAutoImport" value="true" />
       </SbtProjectSettings>
       <SbtProjectSettings>
+        <option name="externalProjectPath" value="D:\User\Dropbox\Works\smc\smc-level" />
+        <option name="useAutoImport" value="true" />
+      </SbtProjectSettings>
+      <SbtProjectSettings>
         <option name="externalProjectPath" value="D:\User\Dropbox\Works\smc\smc-nbt" />
         <option name="useAutoImport" value="true" />
       </SbtProjectSettings>
