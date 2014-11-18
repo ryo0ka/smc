@@ -57,6 +57,7 @@ In order to launch functions in the above examples, please follow these steps:
 2. pass it to the `NbtEnv` constructor
 3. import everything in the `NbtEnv` instance
 
+Example code:
 
 	import smc.nbt.NbtEnv
 	import smc.nbt.pickler.BasePicklers
