@@ -1,35 +1,30 @@
 package smc.nbt
 
-import pickler._
+import smc.pickler._
 import scala.collection.immutable._
 import scala.reflect.runtime.universe._
 
-//TODO BytesI/O may not be the best solution for performance.
 final class NbtEnv(base: BasePicklers) extends StrictEnum {
 
 	sealed trait NbtSpecN extends StrictElem {
 		type T
 		val ttag: TypeTag[T]
 		private[nbt] val pickler: Pickler[T]
-
-		final def unapply(nbt: NbtN): Option[T] = {
-			nbt.as[T](this)
-		}
 	}
 
 	type NbtSpec[A] = NbtSpecN { type T = A }
 
 	protected override type Elem = NbtSpecN
 
-	private object NbtSpec extends Pickler[NbtSpecN] {
+	private object NbtSpec extends Pickler1[NbtSpecN] {
 		val id = base.byte
-		override val pickle: Pickle[NbtSpecN] = { s =>
-			id.pickle(getID(s).toByte)
+		override val pickle: Pickle[NbtSpecN] = { (o, s) =>
+			id.pickle(o, getID(s).toByte)
 		}
 		override val unpickle: Unpickle[NbtSpecN] = { in =>
 			getElem(id.unpickle(in))
 		}
-		def apply[A](implicit s: NbtSpec[A]): NbtSpec[A] = s
+		private[nbt] def apply[A](implicit s: NbtSpec[A]): NbtSpec[A] = s
 	}
 
 	sealed trait NbtN extends TypeTagged {
@@ -53,11 +48,10 @@ final class NbtEnv(base: BasePicklers) extends StrictEnum {
 		}
 	}
 
-	object Nbt extends Pickler[NbtN] {
-		override val pickle: Pickle[NbtN] = { n =>
-			val spec = NbtSpec.pickle(n.spec)
-			val body = n.spec.pickler.pickle(n.value)
-			spec ++ body
+	object Nbt extends Pickler1[NbtN] {
+		override val pickle: Pickle[NbtN] = { (o, n) =>
+			NbtSpec.pickle(o, n.spec)
+			n.spec.pickler.pickle(o, n.value)
 		}
 		override val unpickle: Unpickle[NbtN] = { in =>
 			val spec = NbtSpec.unpickle(in)
@@ -92,16 +86,15 @@ final class NbtEnv(base: BasePicklers) extends StrictEnum {
 
 	type NbtMap = Map[String, NbtN]
 	
-	private object NbtEndPickler extends Pickler[Null] {
-		override val pickle: Pickle[Null] = n => Seq()
+	private object NbtEndPickler extends Pickler1[Null] {
+		override val pickle: Pickle[Null] = (o, n) => Unit
 		override val unpickle: Unpickle[Null] = in => null
 	}
 
-	private final class SeqPickler[T](p: Pickler[T]) extends Pickler[Seq[T]] {
-		override val pickle: Pickle[Seq[T]] = { s =>
-			val size = base.int.pickle(s.size)
-			val body = s.flatMap(p.pickle)
-			size ++ body
+	private final class SeqPickler[T](p: Pickler[T]) extends Pickler1[Seq[T]] {
+		override val pickle: Pickle[Seq[T]] = { (o, s) =>
+			base.int.pickle(o, s.size)
+			s.foreach(e => p.pickle(o, e))
 		}
 		override val unpickle: Unpickle[Seq[T]] = { in =>
 			val size = base.int.unpickle(in)
@@ -110,12 +103,11 @@ final class NbtEnv(base: BasePicklers) extends StrictEnum {
 		}
 	}
 
-	private object NbtSeqPickler extends Pickler[NbtSeqN] {
-		override val pickle: Pickle[NbtSeqN] = { s =>
-			val id = NbtSpec.pickle(s.spec)
-			val size = base.int.pickle(s.value.size)
-			val body = s.value.flatMap(s.spec.pickler.pickle)
-			id ++ size ++ body
+	private object NbtSeqPickler extends Pickler1[NbtSeqN] {
+		override val pickle: Pickle[NbtSeqN] = { (o, s) =>
+			NbtSpec.pickle(o, s.spec)
+			base.int.pickle(o, s.value.size)
+			s.value.foreach(e => s.spec.pickler.pickle(o, e))
 		}
 		override val unpickle: Unpickle[NbtSeqN] = { in =>
 			val spec = NbtSpec.unpickle(in)
@@ -125,19 +117,17 @@ final class NbtEnv(base: BasePicklers) extends StrictEnum {
 		}
 	}
 
-	private object NbtMapPickler extends Pickler[NbtMap] {
+	private object NbtMapPickler extends Pickler1[NbtMap] {
 		type Entry = (String, NbtN)
 
-		object EntryPickler extends Pickler[Entry] {
+		object EntryPickler extends Pickler1[Entry] {
 			val NamePickler = base.string
-			val end = Nbt.pickle(Nbt(null)(NbtEnd))
 
-			override val pickle: Pickle[Entry] = { e =>
+			override val pickle: Pickle[Entry] = { (o, e) =>
 				val (name, n) = e
-				val id = NbtSpec.pickle(n.spec)
-				val bname = NamePickler.pickle(name)
-				val bnbt = n.spec.pickler.pickle(n.value)
-				id ++ bname ++ bnbt
+				NbtSpec.pickle(o, n.spec)
+				NamePickler.pickle(o, name)
+				n.spec.pickler.pickle(o, n.value)
 			}
 			override val unpickle: Unpickle[Entry] = { in =>
 				NbtSpec.unpickle(in) match {
@@ -151,9 +141,9 @@ final class NbtEnv(base: BasePicklers) extends StrictEnum {
 			}
 		}
 
-		override val pickle: Pickle[NbtMap] = { m =>
-			val body = m.flatMap(EntryPickler.pickle)
-			body.toStream ++ EntryPickler.end
+		override val pickle: Pickle[NbtMap] = { (o, m) =>
+			m.foreach(e => EntryPickler.pickle(o, e))
+			Nbt.pickle(o, Nbt(null: Null)(NbtEnd))
 		}
 		override val unpickle: Unpickle[NbtMap] = { in =>
 			def body = EntryPickler.unpickle(in)

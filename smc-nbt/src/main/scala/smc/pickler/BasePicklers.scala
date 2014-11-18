@@ -1,4 +1,4 @@
-package smc.nbt.pickler
+package smc.pickler
 
 trait BasePicklers {
 	val byte: Pickler[Byte]

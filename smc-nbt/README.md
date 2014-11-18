@@ -3,7 +3,7 @@
 Minecraft NBT (Named Binary Tag) functions in Scala.
 
 ehg-nbt supports NBT serialization within type-safe operations.<br>
-The interface is also designed to base on any external serialization libraries.
+The interface is designed to fit to any external serialization libraries.
 
 ##Code Examples
 
@@ -19,16 +19,14 @@ The interface is also designed to base on any external serialization libraries.
 
 ###Extracting a tag's value
 
+Note that `NbtMap` is TAG_Compound.
+
 	val n: NbtN = ???
 	val root: NbtMap = n[NbtMap]
-	val root: NbtMap = n match {
-	  case NbtMap(n) => n
-	  case _ => ???
-	}
 	val root: Option[NbtMap] = n.as[NbtMap]
 	val foo = n[Regex] //Compile error; Regex is not of NBT type
 
-###Constructing tags (note that `NbtMap` is TAG_Compound)
+###Constructing tags
 
 	val version: Nbt[Int] = 19133
 	val level: Nbt[NbtMap] = NbtMap(
@@ -42,15 +40,15 @@ The interface is also designed to base on any external serialization libraries.
 
 ###How to Start
 
-In order to launch the NBT functions,<br>
+In order to launch the NBT functions, please follow these steps:
 
-1. somehow construct the `BasePicklers` trait,
-2. pass it to the `NbtEnv` constructor,
-3. import everything in the `NbtEnv` instance.
+1. somehow construct the `BasePicklers` trait
+2. pass it to the `NbtEnv` constructor
+3. import everything in the `NbtEnv` instance
 
 
 	import smc.nbt.NbtEnv
-	import smc.nbt.pickler.BasePicklers
+	import smc.pickler.BasePicklers
 
 	val base: BasePicklers = ???
 	val e = new NbtEnv(base)
@@ -59,7 +57,7 @@ In order to launch the NBT functions,<br>
 
 Trait `BasePicklers` is defined as:
 
-	package smc.nbt.pickler
+	package smc.pickler
 
 	trait BasePicklers {
       val byte: Pickler[Byte]
@@ -73,27 +71,45 @@ Trait `BasePicklers` is defined as:
 
 Trait `Pickler` is defined as:
 
-	package smc.nbt.pickler
+	package smc.pickler
 
 	trait Pickler[A] {
-	  val pickle: A => Seq[Byte]
-	  val unpickle: Iterator[Byte] => A
+	  val pickle: (OutputStream, A) => Unit
+	  val unpickle: InputStream => A
+
+	  val bpickle: A => Seq[Byte]
+	  val bunpickle: Iterator[Byte] => A
 	}
 
 If your serializatoin library is based on streams:
 
-	import smc.nbt.pickler.PicklerBridge._
+	def serializeString(out: OutputStream, str: String): Unit = ???
+	def deserializeString(in: InputStream): String = ???
 
-	val in: InputStream = ???
-	val n: NbtN = Nbt.unpickle(in.toIterator)
+	import smc.picler._
 
-	val out: OutputStream = ???
-	val n: NbtN = ???
-	out.writeAll(Nbt.pickle(n))
+	object MyBasePicklers extends BasePicklers {
+	  override val string = Pickler(deserializeString, serializeString)
+	  ...
+	}
+	...
+
+If your serialization library is based on byte sequences:
+
+	def pickleString(str: String): Seq[Byte] = ???
+	def unpickleString(in: Iterator[Byte]): String = ???
+
+	import smc.pickler._
+
+	object MyBasePicklers extends BasePicklers {
+		override val string = Pickler(unpickleString, pickleString)
+		...
+	}
+	...
 
 ###Tag names
 
-All tags' names are optimized on the Java/Scala common sense:
+All tags' names are optimized in the Java common form:
 
 |Original name|In smc-nbt|
 |:--|:--|
