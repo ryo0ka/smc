@@ -1,4 +1,4 @@
-package smc
+package smc.nbt
 
 import java.io.{InputStream, OutputStream}
 

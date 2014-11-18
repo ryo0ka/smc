@@ -1,4 +1,4 @@
-package smc.pickler
+package smc.nbt.pickler
 
 import java.io.{ByteArrayOutputStream => BAOS}
 
@@ -10,11 +10,11 @@ trait Pickler[A] {
 }
 
 object Pickler {
-	def apply[A](i: Unpickle[A], o: Pickle[A]) = new Pickler1[A] {
+	def apply[A](i: Unpickle[A])(o: Pickle[A]) = new Pickler1[A] {
 		override val pickle = o
 		override val unpickle = i
 	}
-	def apply[A](i: BUnpickle[A], o: BPickle[A]) = new Pickler2[A] {
+	def apply[A](i: BUnpickle[A])(o: BPickle[A]) = new Pickler2[A] {
 		override val bpickle = o
 		override val bunpickle = i
 	}
