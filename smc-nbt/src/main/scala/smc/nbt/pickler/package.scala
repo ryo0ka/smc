@@ -7,6 +7,4 @@ package object pickler {
 	type O = OutputStream
 	type Pickle[A] = (O, A) => Unit
 	type Unpickle[A] = I => A
-	type BPickle[A] = A => Seq[Byte]
-	type BUnpickle[A] = Iterator[Byte] => A
 }

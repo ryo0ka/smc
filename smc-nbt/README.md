@@ -2,42 +2,34 @@
 
 Minecraft NBT (Named Binary Tag) functions in Scala.
 
-ehg-nbt supports NBT serialization within type-safe operations.<br>
-The interface is designed to fit to any serialization libraries.
+ehg-nbt supports NBT serialization within type-safe operations.
 
 ##Examples
 
 ###Deserializing a tag
 
-	//stream
 	val in: InputStream = ???
 	val (name: String, tag: NbtN) = Nbt.unpickle(i)
-
-	/sequence
-	val in: Iterator[Byte] = ???
-	val (name: String, tag: NbtN) = Nbt.bunpickle(in)
+	val (name, NbtByte(byte)) = Nbt.unpickle(i)
 
 ###Serializing a tag
 
-	//stream
 	val out: OutputStream = ???
-	val tag: (String, NbtN) = ???
-	Nbt.pickle(out, tag)
-
-	//sequence
-	val tag: (String, NbtN) = ???
-	val out: Seq[Byte] = Nbt.bpickle(tag)
+	val name: String = ???
+	val tag: NbtN = ???
+	Nbt.pickle(out, (name, tag))
 
 ###Extracting a tag's value
 
-Note that `NbtMap` is TAG_Compound.
-
 	val tag: NbtN = ???
-	val root: NbtMap = tag[NbtMap]
-	val root: Option[NbtMap] = tag.as[NbtMap]
+	val d: Double = tag[Double]
+	val NbtDouble(d) = tag
+	val d: Option[Double] = tag.as[Double]
 	val foo = tag[Regex] //Compile error; Regex is not of NBT type
 
 ###Constructing tags
+
+Note that `NbtMap` is TAG_Compound and `immutable.Map[String, NbtN]`.
 
 	val version: Nbt[Int] = 19133
 	val level: Nbt[NbtMap] = NbtMap(
@@ -49,13 +41,11 @@ Note that `NbtMap` is TAG_Compound.
 
 ##Directions
 
-###How to Start
+In order to avail functions, please follow these steps:
 
-In order to launch functions in the above examples, please follow these steps:
-
-1. somehow construct the `BasePicklers` trait
-2. pass it to the `NbtEnv` constructor
-3. import everything in the `NbtEnv` instance
+1. implement a concrete class/object of `BasePicklers` trait
+2. construct `NbtEnv` class with it
+3. import everything in it
 
 Example code:
 
@@ -88,50 +78,20 @@ Trait `Pickler` is defined as:
 	trait Pickler[A] {
 	  val pickle: (OutputStream, A) => Unit
 	  val unpickle: InputStream => A
-
-	  val bpickle: A => Seq[Byte]
-	  val bunpickle: Iterator[Byte] => A
 	}
 
-If your serializatoin library is based on streams:
-
-	def serializeString(out: OutputStream, str: String): Unit = ???
-	def deserializeString(in: InputStream): String = ???
-
-	import smc.nbt.picler._
-
-	object MyBasePicklers extends BasePicklers {
-	  override val string = Pickler(deserializeString)(serializeString)
-	  ...
+	object Pickler {
+	  def apply[A](i: Unpickle[A], o: Pickle[A]) = new Pickler[A] {
+	    override val pickle = o
+	    override val unpickle = i
+	  }
 	}
-
-If your serialization library is based on byte sequences:
-
-	def pickleString(str: String): Seq[Byte] = ???
-	def unpickleString(in: Iterator[Byte]): String = ???
-
-	import smc.nbt.pickler._
-
-	object MyBasePicklers extends BasePicklers {
-		override val string = Pickler(unpickleString)(pickleString)
-		...
-	}
-
-If you don't have any serializatoin libraries:
-
-	import smc.nbt.NbtEnv._
-	...
-	//Please use java.io.{DataInputStream, OutputStream} for ALL streams
-	//otherwise you would experience the terrible performance.
-	//Installing some other serialization library is highly recommended.
-
-###Tag names
 
 All tags' names are optimized in the Java common form:
 
 |Original name|In smc-nbt|
 |:--|:--|
-|TAG_End|NbtEnd (invisible)|
+|TAG_End|NbtEnd|
 |TAG_Byte|NbtByte|
 |TAG_Short|NbtShort|
 |TAG_Int|NbtInt|

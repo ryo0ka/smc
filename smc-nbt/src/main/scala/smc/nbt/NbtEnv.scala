@@ -11,13 +11,15 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 		val ttag: TypeTag[T]
 		private[nbt] val value: Pickler[T]
 		private[nbt] val name: Pickler[String]
+
+		final def unapply(n: NbtN) = n.as[T](this)
 	}
 
 	type NbtSpec[A] = NbtSpecN { type T = A }
 
 	protected override type Elem = NbtSpecN
 
-	private object NbtSpec extends Pickler1[NbtSpecN] {
+	private object NbtSpec extends Pickler[NbtSpecN] {
 		val id = base.byte
 		override val pickle: Pickle[NbtSpecN] = { (o, s) =>
 			id.pickle(o, getID(s).toByte)
@@ -49,7 +51,7 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 		}
 	}
 
-	private object Nbt extends Pickler1[(String, NbtN)] {
+	private object Nbt extends Pickler[(String, NbtN)] {
 		override val pickle: Pickle[(String, NbtN)] = { (o, n) =>
 			val (name, nbt) = n
 			NbtSpec.pickle(o, nbt.spec)
@@ -90,12 +92,12 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 
 	type NbtMap = Map[String, NbtN]
 	
-	private object NbtEndPickler extends Pickler1[Null] {
+	private object NbtEndPickler extends Pickler[Null] {
 		override val pickle: Pickle[Null] = (o, n) => Unit
 		override val unpickle: Unpickle[Null] = in => null: Null
 	}
 
-	private final class SeqPickler[T](p: Pickler[T]) extends Pickler1[Seq[T]] {
+	private final class SeqPickler[T](p: Pickler[T]) extends Pickler[Seq[T]] {
 		override val pickle: Pickle[Seq[T]] = { (o, s) =>
 			base.int.pickle(o, s.size)
 			s.foreach(e => p.pickle(o, e))
@@ -107,7 +109,7 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 		}
 	}
 
-	private object NbtSeqPickler extends Pickler1[NbtSeqN] {
+	private object NbtSeqPickler extends Pickler[NbtSeqN] {
 		override val pickle: Pickle[NbtSeqN] = { (o, s) =>
 			NbtSpec.pickle(o, s.spec)
 			base.int.pickle(o, s.value.size)
@@ -121,7 +123,7 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 		}
 	}
 
-	private object NbtMapPickler extends Pickler1[NbtMap] {
+	private object NbtMapPickler extends Pickler[NbtMap] {
 		val end = ("", Nbt(null: Null)(NbtEnd))
 
 		override val pickle: Pickle[NbtMap] = { (o, m) =>
@@ -143,7 +145,7 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 	}
 
 	implicit object NbtEnd extends NbtSpecAbs(NbtEndPickler) {
-		override val name = new Pickler1[String] {
+		override val name = new Pickler[String] {
 			override val pickle: Pickle[String] = (o, n) => Unit
 			override val unpickle: Unpickle[String] = i => ""
 		}
@@ -160,5 +162,3 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 	implicit object NbtMap extends NbtSpecAbs(NbtMapPickler)
 	implicit object NbtInts extends NbtSpecAbs(new SeqPickler(base.int))
 }
-
-object NbtEnv extends NbtEnv(BasePicklers)
