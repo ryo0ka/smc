@@ -10,7 +10,7 @@ ehg-nbt supports NBT serialization within type-safe operations.
 
 	val in: InputStream = ???
 	val (name: String, tag: NbtN) = Nbt.unpickle(i)
-	val (name, NbtByte(byte)) = Nbt.unpickle(i)
+	val (name, NbtByte(b: Byte)) = Nbt.unpickle(i)
 
 ###Serializing a tag
 
@@ -41,6 +41,8 @@ Note that `NbtMap` is TAG_Compound and `immutable.Map[String, NbtN]`.
 
 ##Directions
 
+###How to Start
+
 In order to avail functions, please follow these steps:
 
 1. implement a concrete class/object of `BasePicklers` trait
@@ -57,7 +59,7 @@ Example code:
 	import e._
 	//Here all items are available
 
-Trait `BasePicklers` is defined as:
+###BasePicklers.scala
 
 	package smc.nbt.pickler
 
@@ -71,7 +73,7 @@ Trait `BasePicklers` is defined as:
       val string: Pickler[String]
     }
 
-Trait `Pickler` is defined as:
+###Pickler.scala
 
 	package smc.nbt.pickler
 
@@ -86,6 +88,8 @@ Trait `Pickler` is defined as:
 	    override val unpickle = i
 	  }
 	}
+
+###Name Changes
 
 All tags' names are optimized in the Java common form:
 
