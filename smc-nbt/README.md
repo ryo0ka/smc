@@ -95,18 +95,18 @@ All tags' names are optimized in the Java common form:
 
 |Original name|In smc-nbt|
 |:--|:--|
-|TAG_End|NbtEnd|
+|TAG_End|NbtEnd (`Nbt[Null]`)|
 |TAG_Byte|NbtByte|
 |TAG_Short|NbtShort|
 |TAG_Int|NbtInt|
 |TAG_Long|NbtLong|
 |TAG_FLoat|NbtFloat|
 |TAG_Double|NbtDouble|
-|TAG_Byte_Array|NbtBytes|
+|TAG_Byte_Array|NbtBytes (`Nbt[Seq[Byte]]`)|
 |TAG_String|NbtString|
 |TAG_List|NbtSeq|
-|TAG_Compound|NbtMap|
-|TAG_Int_Array|NbtInts|
+|TAG_Compound|NbtMap (`Nbt[Map[(String, Nbt[_])]]`)|
+|TAG_Int_Array|NbtInts (`Nbt[Seq[Int]]`)|
 
 ##References
 
