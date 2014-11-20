@@ -98,7 +98,7 @@ Example code:
 
 	final class NbtEnv(base: BasePicklers) {
 	  sealed trait NbtSpec[T] {
-	    def unapply(n: NbtN): Option[T]
+	    def unapply(n: Nbt[_]): Option[T]
 	  }
 
 	  implicit final case class Nbt[T: NbtSpec](value: T) {
