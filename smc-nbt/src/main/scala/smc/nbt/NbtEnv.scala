@@ -2,17 +2,18 @@ package smc.nbt
 
 import smc.nbt.pickler._
 import scala.collection.immutable._
-import scala.reflect.runtime.universe._
+import scala.util.control.Exception._
 
-sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
+final class NbtEnv(base: BasePicklers) extends StrictEnum {
 
 	sealed trait NbtSpecN extends StrictElem {
 		type T
-		val ttag: TypeTag[T]
 		private[nbt] val value: Pickler[T]
 		private[nbt] val name: Pickler[String]
 
-		final def unapply(n: NbtN) = n.as[T](this)
+		final def unapply(n: NbtN): Option[T] = {
+			allCatch opt n.get[T](this)
+		}
 	}
 
 	type NbtSpec[A] = NbtSpecN { type T = A }
@@ -21,23 +22,25 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 
 	private object NbtSpec extends Pickler[NbtSpecN] {
 		val id = base.byte
+
 		override val pickle: Pickle[NbtSpecN] = { (o, s) =>
 			id.pickle(o, getID(s).toByte)
 		}
 		override val unpickle: Unpickle[NbtSpecN] = { in =>
 			getElem(id.unpickle(in))
 		}
+
 		private[nbt] def apply[A](implicit s: NbtSpec[A]) = s
 	}
 
-	sealed trait NbtN extends TypeTagged {
+	sealed trait NbtN {
+		type T
+		val value: T
 		val spec: NbtSpec[T]
 
-		final def as[U: NbtSpec]: Option[U] = {
-			implicit val t = NbtSpec[U].ttag
-			valueAs[U]
+		final def get[U: NbtSpec]: U = {
+			value.asInstanceOf[U]
 		}
-		final def apply[U: NbtSpec]: U = as[U].get
 	}
 
 	type Nbt[A] = NbtN { type T = A }
@@ -46,12 +49,12 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 		new NbtN {
 			override type T = A
 			override val spec = NbtSpec[A]
-			override val ttag = spec.ttag
 			override val value = v
+			override val toString = s"Nbt($v)"
 		}
 	}
 
-	private object Nbt extends Pickler[(String, NbtN)] {
+	object Nbt extends Pickler[(String, NbtN)] {
 		override val pickle: Pickle[(String, NbtN)] = { (o, n) =>
 			val (name, nbt) = n
 			NbtSpec.pickle(o, nbt.spec)
@@ -66,27 +69,24 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 		}
 	}
 
-	sealed trait NbtSeqN extends TypeTagged {
-		type E
-		override type T = Seq[E]
-		val spec: NbtSpec[E]
-		implicit val ettag = spec.ttag
-		override val ttag = typeTag[T]
+	sealed trait NbtSeqN {
+		type T
+		val value: Seq[T]
+		val spec: NbtSpec[T]
 
-		final def as[U: NbtSpec]: Option[Seq[U]] = {
-			implicit val t = NbtSpec[U].ttag
-			valueAs[Seq[U]]
+		final def get[U: NbtSpec]: Seq[U] = {
+			value.asInstanceOf[Seq[U]]
 		}
-		final def apply[U: NbtSpec]: Seq[U] = as[U].get
 	}
 
-	type NbtSeq[A] = NbtSeqN { type E = A }
+	type NbtSeq[A] = NbtSeqN { type T = A }
 
 	def NbtSeq[A: NbtSpec](v: Seq[A]): NbtSeq[A] = {
 		new NbtSeqN {
-			override type E = A
+			override type T = A
 			override val spec = NbtSpec[A]
 			override val value = v
+			override val toString = s"NbtSeq($v)"
 		}
 	}
 
@@ -119,7 +119,7 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 			val spec = NbtSpec.unpickle(in)
 			val size = base.int.unpickle(in)
 			def body = spec.value.unpickle(in)
-			NbtSeq(Seq.fill(size)(body))(spec)
+			NbtSeq(Seq.fill(size)(body))(spec): NbtSeqN
 		}
 	}
 
@@ -137,10 +137,9 @@ sealed class NbtEnv(base: BasePicklers) extends StrictEnum {
 		}
 	}
 
-	class NbtSpecAbs[A: TypeTag] private[NbtEnv](
-		private[nbt] override val value: Pickler[A]) extends NbtSpecN {
+	class NbtSpecAbs[A] private[NbtEnv](v: Pickler[A]) extends NbtSpecN {
 		override type T = A
-		override val ttag = typeTag[A]
+		override private[nbt] val value = v
 		override val name = base.string
 	}
 

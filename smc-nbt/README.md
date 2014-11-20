@@ -1,53 +1,43 @@
 #smc-nbt
 
-Minecraft NBT (Named Binary Tag) functions in Scala.
-
-ehg-nbt supports NBT serialization within type-safe operations.
+Minecraft NBT (Named Binary Tag) serialization and type-safe operations for Scala projects.
 
 ##Examples
 
-###Deserializing a tag
+###Reading
 
 	val in: InputStream = ???
-	val (name: String, tag: NbtN) = Nbt.unpickle(i)
+	val (name: String, tag: Nbt[_]) = Nbt.unpickle(i)
 	val (name, NbtByte(b: Byte)) = Nbt.unpickle(i)
 
-###Serializing a tag
+###Writing
 
 	val out: OutputStream = ???
 	val name: String = ???
-	val tag: NbtN = ???
+	val tag: Nbt[_] = ???
 	Nbt.pickle(out, (name, tag))
 
-###Extracting a tag's value
+###Untagging
 
-	val tag: NbtN = ???
-	val d: Double = tag[Double]
+	val tag: Nbt[_] = ???
 	val NbtDouble(d) = tag
-	val d: Option[Double] = tag.as[Double]
-	val foo = tag[Regex] //Compile error; Regex is not of NBT type
+	val d: Double = tag.get
+	val d = tag.get[Double]
+	val foo = tag.get[Regex] //Compile error; Regex is not of NBT type
 
-###Constructing tags
+###Tagging
 
-Note that `NbtMap` is TAG_Compound and `immutable.Map[String, NbtN]`.
-
-	val version: Nbt[Int] = 19133
-	val level: Nbt[NbtMap] = NbtMap(
-	  "version" -> version,
-	  "LevelName" -> "New World"
-	  "initialized" -> true.toByte
-	  "foo" -> "".r //Compile error; Regex is not of NBT type
-	)
+	val version: Nbt[Int] = Nbt(19133)
+	val version: Nbt[Int] = 19133 //Function `Nbt` is implicit
+	val foo = Nbt("".r) //Compile error; Regex is not of NBT type
 
 ##Directions
 
 ###How to Start
 
-In order to avail functions, please follow these steps:
-
-1. implement a concrete class/object of `BasePicklers` trait
+1. implement `BasePicklers` trait
 2. construct `NbtEnv` class with it
-3. import everything in it
+3. import all the contents
 
 Example code:
 
@@ -59,7 +49,7 @@ Example code:
 	import e._
 	//Here all items are available
 
-###BasePicklers.scala
+###pickler\BasePicklers.scala
 
 	package smc.nbt.pickler
 
@@ -73,13 +63,13 @@ Example code:
       val string: Pickler[String]
     }
 
-###Pickler.scala
+###pickler\Pickler.scala
 
 	package smc.nbt.pickler
 
 	trait Pickler[A] {
-	  val pickle: (OutputStream, A) => Unit
-	  val unpickle: InputStream => A
+	  val pickle: Pickle[A]
+	  val unpickle: Unpickle[A]
 	}
 
 	object Pickler {
@@ -89,24 +79,53 @@ Example code:
 	  }
 	}
 
-###Name Changes
+###pickler\package.scala
 
-All tags' names are optimized in the Java common form:
+	package smc.nbt
 
-|Original name|In smc-nbt|
-|:--|:--|
-|TAG_End|NbtEnd (`Null`)|
-|TAG_Byte|NbtByte|
-|TAG_Short|NbtShort|
-|TAG_Int|NbtInt|
-|TAG_Long|NbtLong|
-|TAG_FLoat|NbtFloat|
-|TAG_Double|NbtDouble|
-|TAG_Byte_Array|NbtBytes (`Seq[Byte]`)|
-|TAG_String|NbtString|
-|TAG_List|NbtSeq|
-|TAG_Compound|NbtMap (`Map[(String, Nbt[_])]`)|
-|TAG_Int_Array|NbtInts (`Seq[Int]`)|
+	package object pickler {
+	  type I = InputStream
+	  type O = OutputStream
+	  type Pickle[A] = (O, A) => Unit
+	  type Unpickle[A] = I => A
+	}
+
+###NbtEnv.scala (pseudo)
+
+	package smc.nbt
+
+	import scala.collection.immutable._
+
+	final class NbtEnv(base: BasePicklers) {
+	  sealed trait NbtSpec[T] {
+	    def unapply(n: NbtN): Option[T]
+	  }
+
+	  implicit final case class Nbt[T: NbtSpec](value: T) {
+	    def get[U: NbtSpec]: U
+	  }
+
+	  object Nbt extends Pickler[Nbt[_]]
+
+	  final case class NbtSeq[T: NbtSpec](value: Seq[T]) {
+	    def get[U: NbtSpec]: Seq[U]
+	  }
+
+	  type NbtMap = Map[String, Nbt[_]]
+
+	  implicit object NbtEnd    extends NbtSpec[Null     ]
+	  implicit object NbtByte   extends NbtSpec[Byte     ]
+	  implicit object NbtShort  extends NbtSpec[Short    ]
+	  implicit object NbtInt    extends NbtSpec[Int      ]
+	  implicit object NbtLong   extends NbtSpec[Long     ]
+	  implicit object NbtFloat  extends NbtSpec[Float    ]
+	  implicit object NbtDouble extends NbtSpec[Double   ]
+	  implicit object NbtBytes  extends NbtSpec[Seq[Byte]]
+	  implicit object NbtString extends NbtSpec[String   ]
+	  implicit object NbtSeq    extends NbtSpec[NbtSeq[_]]
+	  implicit object NbtMap    extends NbtSpec[NbtMap   ]
+	  implicit object NbtInts   extends NbtSpec[Seq[Int] ]
+	}
 
 ##References
 
