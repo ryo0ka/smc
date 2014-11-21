@@ -10,7 +10,7 @@ trait ProtectedEnum {
 
 	protected type ProtectedElemType <: ProtectedElem
 
-	private val elems = mutable.Buffer[ProtectedElemType]()
+	private val elems = mutable.ArrayBuffer[ProtectedElemType]()
 
 	protected def getElem(id: Int): ProtectedElemType = elems(id)
 	protected def getID(elem: ProtectedElemType): Int = elem.id

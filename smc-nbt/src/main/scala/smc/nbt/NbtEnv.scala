@@ -8,8 +8,8 @@ final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 
 	sealed trait NbtSpecN extends ProtectedElem {
 		type T
-		private[nbt] val value: Pickler[T]
-		private[nbt] val name: Pickler[String]
+		private[nbt] val valp: Pickler[T]
+		private[nbt] val namep: Pickler[String]
 
 		final def unapply(n: NbtN): Option[T] = {
 			allCatch opt n.get[T](this)
@@ -34,13 +34,13 @@ final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 			getElem(id.unpickle(in))
 		}
 
-		private[nbt] def apply[A](implicit s: NbtSpec[A]) = s
+		def apply[A](implicit s: NbtSpec[A]) = s
 	}
 
 	sealed trait NbtN {
 		type T
 		val value: T
-		val spec: NbtSpec[T]
+		private[nbt] val spec: NbtSpec[T]
 
 		final def get[U: NbtSpec]: U = {
 			value.asInstanceOf[U]
@@ -62,13 +62,13 @@ final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 		override val pickle: Pickle[(String, NbtN)] = { (o, n) =>
 			val (name, nbt) = n
 			NbtSpec.pickle(o, nbt.spec)
-			nbt.spec.name.pickle(o, name)
-			nbt.spec.value.pickle(o, nbt.value)
+			nbt.spec.namep.pickle(o, name)
+			nbt.spec.valp.pickle(o, nbt.value)
 		}
 		override val unpickle: Unpickle[(String, NbtN)] = { in =>
 			val spec = NbtSpec.unpickle(in)
-			val name = spec.name.unpickle(in)
-			val body = spec.value.unpickle(in)
+			val name = spec.namep.unpickle(in)
+			val body = spec.valp.unpickle(in)
 			(name, Nbt(body)(spec): NbtN)
 		}
 	}
@@ -76,7 +76,7 @@ final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 	sealed trait NbtSeqN {
 		type T
 		val value: Seq[T]
-		val spec: NbtSpec[T]
+		private[nbt] val spec: NbtSpec[T]
 
 		final def get[U: NbtSpec]: Seq[U] = {
 			value.asInstanceOf[Seq[U]]
@@ -95,10 +95,20 @@ final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 	}
 
 	type NbtMap = Map[String, NbtN]
-	
-	private object NbtEndPickler extends Pickler[Null] {
-		override val pickle: Pickle[Null] = (o, n) => Unit
-		override val unpickle: Unpickle[Null] = in => null: Null
+
+	object NbtEnd extends NbtSpecN with NbtN {
+		override type T = Null
+		override val value = null: Null
+		override private[nbt] val spec = this
+		override private[nbt] val valp = new Pickler[Null] {
+			override val pickle: Pickle[Null] = (o, n) => Unit
+			override val unpickle: Unpickle[Null] = in => null: Null
+		}
+		override private[nbt] val namep = new Pickler[String] {
+			override val pickle: Pickle[String] = (_, _) => Unit
+			override val unpickle: Unpickle[String] = _ => ""
+		}
+		val named: (String, Nbt[Null]) = ("", this)
 	}
 
 	private final class SeqPickler[T](p: Pickler[T]) extends Pickler[Seq[T]] {
@@ -117,22 +127,20 @@ final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 		override val pickle: Pickle[NbtSeqN] = { (o, s) =>
 			NbtSpec.pickle(o, s.spec)
 			base.int.pickle(o, s.value.size)
-			s.value.foreach(e => s.spec.value.pickle(o, e))
+			s.value.foreach(e => s.spec.valp.pickle(o, e))
 		}
 		override val unpickle: Unpickle[NbtSeqN] = { in =>
 			val spec = NbtSpec.unpickle(in)
 			val size = base.int.unpickle(in)
-			def body = spec.value.unpickle(in)
+			def body = spec.valp.unpickle(in)
 			NbtSeq(Seq.fill(size)(body))(spec): NbtSeqN
 		}
 	}
 
 	private object NbtMapPickler extends Pickler[NbtMap] {
-		val end = ("", Nbt(null: Null)(NbtEnd))
-
 		override val pickle: Pickle[NbtMap] = { (o, m) =>
 			m.foreach(e => Nbt.pickle(o, e))
-			Nbt.pickle(o, end)
+			Nbt.pickle(o, NbtEnd.named)
 		}
 		override val unpickle: Unpickle[NbtMap] = { in =>
 			def body = Nbt.unpickle(in)
@@ -143,15 +151,8 @@ final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 
 	class NbtSpecAbs[A] private[NbtEnv](v: Pickler[A]) extends NbtSpecN {
 		override type T = A
-		override private[nbt] val value = v
-		override val name = base.string
-	}
-
-	implicit object NbtEnd extends NbtSpecAbs(NbtEndPickler) {
-		override val name = new Pickler[String] {
-			override val pickle: Pickle[String] = (o, n) => Unit
-			override val unpickle: Unpickle[String] = i => ""
-		}
+		override val namep = base.string
+		override private[nbt] val valp = v
 	}
 	implicit object NbtByte extends NbtSpecAbs(base.byte)
 	implicit object NbtShort extends NbtSpecAbs(base.short)

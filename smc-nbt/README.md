@@ -1,6 +1,6 @@
 #smc-nbt
 
-Minecraft NBT (Named Binary Tag) serialization and type-safe operations for Scala projects.
+Minecraft NBT (Named Binary Tag) serialization for Scala projects.
 
 ##Examples
 
@@ -16,6 +16,7 @@ Minecraft NBT (Named Binary Tag) serialization and type-safe operations for Scal
 	val NbtDouble(d) = tag
 	val d: Double = tag.get
 	val d = tag.get[Double]
+	val ds: Seq[Double] = tag.get[NbtSeqN].get[Double] //TAG_List
 	val foo = tag.get[Regex] //Compile error; Regex is not of NBT type
 
 ###Tagging
@@ -91,7 +92,7 @@ Example code:
 	  type Unpickle[A] = I => A
 	}
 
-###NbtEnv.scala (pseudo)
+###NbtEnv.scala (signatures)
 
 	package smc.nbt
 
@@ -100,19 +101,20 @@ Example code:
 	final class NbtEnv(base: BasePicklers) {
 	  sealed trait NbtSpec[T] {
 	    def unapply(n: Nbt[_]): Option[T]
+	    def apply(v: T): Nbt[T]
 	  }
 
-	  implicit final case class Nbt[T: NbtSpec](value: T) {
+	  implicit sealed case class Nbt[T: NbtSpec](value: T) {
 	    def get[U: NbtSpec]: U
 	  }
 
-	  final case class NbtSeq[T: NbtSpec](value: Seq[T]) {
+	  sealed case class NbtSeq[T: NbtSpec](value: Seq[T]) {
 	    def get[U: NbtSpec]: Seq[U]
 	  }
 
 	  type NbtMap = Map[String, Nbt[_]]
 
-	  implicit object NbtEnd    extends NbtSpec[Null     ]
+	  object NbtEnd extends Nbt[Null] with NbtSpec[Null]
 	  implicit object NbtByte   extends NbtSpec[Byte     ]
 	  implicit object NbtShort  extends NbtSpec[Short    ]
 	  implicit object NbtInt    extends NbtSpec[Int      ]
