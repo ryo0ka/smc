@@ -4,9 +4,9 @@ import smc.nbt.pickler._
 import scala.collection.immutable._
 import scala.util.control.Exception._
 
-final class NbtEnv(base: BasePicklers) extends StrictEnum {
+final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 
-	sealed trait NbtSpecN extends StrictElem {
+	sealed trait NbtSpecN extends ProtectedElem {
 		type T
 		private[nbt] val value: Pickler[T]
 		private[nbt] val name: Pickler[String]
@@ -14,11 +14,15 @@ final class NbtEnv(base: BasePicklers) extends StrictEnum {
 		final def unapply(n: NbtN): Option[T] = {
 			allCatch opt n.get[T](this)
 		}
+
+		final def apply(n: T): Nbt[T] = {
+			Nbt(n)(this)
+		}
 	}
 
 	type NbtSpec[A] = NbtSpecN { type T = A }
 
-	protected override type Elem = NbtSpecN
+	protected override type ProtectedElemType = NbtSpecN
 
 	private object NbtSpec extends Pickler[NbtSpecN] {
 		val id = base.byte

@@ -10,13 +10,6 @@ Minecraft NBT (Named Binary Tag) serialization and type-safe operations for Scal
 	val (name: String, tag: Nbt[_]) = Nbt.unpickle(i)
 	val (name, NbtByte(b: Byte)) = Nbt.unpickle(i)
 
-###Writing
-
-	val out: OutputStream = ???
-	val name: String = ???
-	val tag: Nbt[_] = ???
-	Nbt.pickle(out, (name, tag))
-
 ###Untagging
 
 	val tag: Nbt[_] = ???
@@ -27,9 +20,17 @@ Minecraft NBT (Named Binary Tag) serialization and type-safe operations for Scal
 
 ###Tagging
 
+	val version: Nbt[Int] = NbtInt(19133)
 	val version: Nbt[Int] = Nbt(19133)
 	val version: Nbt[Int] = 19133 //Function `Nbt` is implicit
 	val foo = Nbt("".r) //Compile error; Regex is not of NBT type
+
+###Writing
+
+	val out: OutputStream = ???
+	val name: String = ???
+	val tag: Nbt[_] = ???
+	Nbt.pickle(out, (name, tag))
 
 ##Directions
 
@@ -105,8 +106,6 @@ Example code:
 	    def get[U: NbtSpec]: U
 	  }
 
-	  object Nbt extends Pickler[Nbt[_]]
-
 	  final case class NbtSeq[T: NbtSpec](value: Seq[T]) {
 	    def get[U: NbtSpec]: Seq[U]
 	  }
@@ -125,6 +124,8 @@ Example code:
 	  implicit object NbtSeq    extends NbtSpec[NbtSeq[_]]
 	  implicit object NbtMap    extends NbtSpec[NbtMap   ]
 	  implicit object NbtInts   extends NbtSpec[Seq[Int] ]
+
+	  object Nbt extends Pickler[(String, Nbt[_])]
 	}
 
 ##References
