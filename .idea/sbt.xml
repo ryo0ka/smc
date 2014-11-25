@@ -3,11 +3,21 @@
   <component name="ScalaSbtSettings">
     <option name="linkedExternalProjectsSettings">
       <SbtProjectSettings>
-        <option name="externalProjectPath" value="$PROJECT_DIR$/project" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="jdk" value="1.8" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/project" />
+            <option value="$PROJECT_DIR$/smc-level" />
+            <option value="$PROJECT_DIR$/smc-level/project" />
+            <option value="$PROJECT_DIR$/smc-nbt" />
+            <option value="$PROJECT_DIR$/smc-nbt/project" />
+          </set>
+        </option>
+        <option name="useAutoImport" value="true" />
       </SbtProjectSettings>
       <SbtProjectSettings>
-        <option name="createEmptyContentRootDirectories" value="true" />
         <option name="externalProjectPath" value="$PROJECT_DIR$/smc-level" />
         <option name="jdk" value="1.8" />
         <option name="modules">
@@ -16,12 +26,9 @@
             <option value="$PROJECT_DIR$/smc-level/project" />
           </set>
         </option>
-        <option name="resolveClassifiers" value="true" />
-        <option name="resolveSbtClassifiers" value="true" />
         <option name="useAutoImport" value="true" />
       </SbtProjectSettings>
       <SbtProjectSettings>
-        <option name="createEmptyContentRootDirectories" value="true" />
         <option name="externalProjectPath" value="$PROJECT_DIR$/smc-nbt" />
         <option name="jdk" value="1.8" />
         <option name="modules">
@@ -30,16 +37,6 @@
             <option value="$PROJECT_DIR$/smc-nbt/project" />
           </set>
         </option>
-        <option name="resolveClassifiers" value="true" />
-        <option name="resolveSbtClassifiers" value="true" />
-        <option name="useAutoImport" value="true" />
-      </SbtProjectSettings>
-      <SbtProjectSettings>
-        <option name="externalProjectPath" value="D:\User\Dropbox\Works\smc\smc-level" />
-        <option name="useAutoImport" value="true" />
-      </SbtProjectSettings>
-      <SbtProjectSettings>
-        <option name="externalProjectPath" value="D:\User\Dropbox\Works\smc\smc-nbt" />
         <option name="useAutoImport" value="true" />
       </SbtProjectSettings>
     </option>

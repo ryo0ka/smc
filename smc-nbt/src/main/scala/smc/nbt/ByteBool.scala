@@ -1,4 +1,4 @@
-package smc.nbt.util
+package smc.nbt
 
 object ByteBool {
 	type Bool = Boolean

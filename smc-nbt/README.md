@@ -45,17 +45,14 @@ It is not so instant that you've expected:
 
 Example code:
 
-	import smc.nbt.NbtEnv
-	import smc.nbt.pickler.BasePicklers
+	import smc.nbt._
 
 	val base: BasePicklers = ???
 	val e = new NbtEnv(base)
 	import e._
 	//Here all items are available
 
-###pickler\BasePicklers.scala
-
-	package smc.nbt.pickler
+###smc.nbt.BasePicklers.scala
 
 	trait BasePicklers {
       val byte: Pickler[Byte]
@@ -67,9 +64,7 @@ Example code:
       val string: Pickler[String]
     }
 
-###pickler\Pickler.scala
-
-	package smc.nbt.pickler
+###smc.nbt.Pickler.scala
 
 	trait Pickler[A] {
 	  override def pickle(o: O, n: A): Unit
@@ -88,9 +83,7 @@ Example code:
 	  }
 	}
 
-###NbtEnv.scala (signatures)
-
-	package smc.nbt
+###smc.nbt.NbtEnv.scala (signatures)
 
 	import scala.collection.immutable._
 

@@ -1,6 +1,6 @@
 package smc.nbt
 
-import smc.nbt.pickler._, Pickler._
+import smc.nbt.Pickler._
 import scala.collection._
 import scala.util.control.Exception._
 
@@ -30,6 +30,7 @@ final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 		override def unpickle(i: I): NbtSpec[_] = {
 			getElem(id.unpickle(i))
 		}
+
 		def apply[A](implicit s: NbtSpec[A]) = s
 	}
 
