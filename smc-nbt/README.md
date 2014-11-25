@@ -16,7 +16,7 @@ Minecraft NBT (Named Binary Tag) serialization for Scala projects.
 	val NbtDouble(d) = tag
 	val d: Double = tag.get
 	val d = tag.get[Double]
-	val ds: Seq[Double] = tag.get[NbtSeqN].get[Double] //TAG_List
+	val ds: Seq[Double] = tag.get[NbtSeq[Double]]
 	val foo = tag.get[Regex] //Compile error; Regex is not of NBT type
 
 ###Tagging
@@ -36,6 +36,8 @@ Minecraft NBT (Named Binary Tag) serialization for Scala projects.
 ##Directions
 
 ###How to Start
+
+It is not so instant that you've expected:
 
 1. implement `BasePicklers` trait
 2. construct `NbtEnv` class with it
@@ -70,26 +72,20 @@ Example code:
 	package smc.nbt.pickler
 
 	trait Pickler[A] {
-	  val pickle: Pickle[A]
-	  val unpickle: Unpickle[A]
+	  override def pickle(o: O, n: A): Unit
+	  override def unpickle(i: I): A
 	}
 
 	object Pickler {
-	  def apply[A](i: Unpickle[A], o: Pickle[A]) = new Pickler[A] {
-	    override val pickle = o
-	    override val unpickle = i
-	  }
-	}
-
-###pickler\package.scala
-
-	package smc.nbt
-
-	package object pickler {
 	  type I = InputStream
 	  type O = OutputStream
 	  type Pickle[A] = (O, A) => Unit
 	  type Unpickle[A] = I => A
+
+	  def apply[A](enc: Unpickle[A], dec: Pickle[A]) = new Pickler[A] {
+	    override def pickle(o: O, n: A): Unit = dec
+	    override def unpickle(i: I): A = enc
+	  }
 	}
 
 ###NbtEnv.scala (signatures)
@@ -114,7 +110,10 @@ Example code:
 
 	  type NbtMap = Map[String, Nbt[_]]
 
-	  object NbtEnd extends Nbt[Null] with NbtSpec[Null]
+	  object NbtEnd extends Nbt[Null] with NbtSpec[Null] {
+	    val named: (String, Nbt[Null])
+	  }
+
 	  implicit object NbtByte   extends NbtSpec[Byte     ]
 	  implicit object NbtShort  extends NbtSpec[Short    ]
 	  implicit object NbtInt    extends NbtSpec[Int      ]

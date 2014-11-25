@@ -1,16 +1,22 @@
 package smc.nbt.pickler
 
-import java.io.{ByteArrayOutputStream => BAOS}
+import java.io.{InputStream, OutputStream}
+import Pickler._
 
 trait Pickler[A] {
-	val pickle: Pickle[A]
-	val unpickle: Unpickle[A]
+	def pickle(o: O, n: A): Unit
+	def unpickle(i: I): A
 }
 
 object Pickler {
-	def apply[A](i: Unpickle[A], o: Pickle[A]) = new Pickler[A] {
-		override val pickle = o
-		override val unpickle = i
+	type I = InputStream
+	type O = OutputStream
+
+	type Pickle[-A] = (O, A) => Unit
+	type Unpickle[+A] = I => A
+
+	def apply[A](enc: Unpickle[A], dec: Pickle[A]) = new Pickler[A] {
+		override def pickle(o: O, n: A): Unit = dec(o, n)
+		override def unpickle(i: I): A = enc(i)
 	}
 }
-

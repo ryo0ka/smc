@@ -3,6 +3,10 @@
   <component name="ScalaSbtSettings">
     <option name="linkedExternalProjectsSettings">
       <SbtProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/project" />
+        <option name="jdk" value="1.8" />
+      </SbtProjectSettings>
+      <SbtProjectSettings>
         <option name="createEmptyContentRootDirectories" value="true" />
         <option name="externalProjectPath" value="$PROJECT_DIR$/smc-level" />
         <option name="jdk" value="1.8" />

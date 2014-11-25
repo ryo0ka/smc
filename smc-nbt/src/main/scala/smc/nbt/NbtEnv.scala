@@ -1,17 +1,16 @@
 package smc.nbt
 
-import smc.nbt.pickler._
-import scala.collection.immutable._
+import smc.nbt.pickler._, Pickler._
+import scala.collection._
 import scala.util.control.Exception._
 
 final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 
-	sealed trait NbtSpecN extends ProtectedElem {
-		type T
+	sealed trait NbtSpec[T] extends ProtectedElem {
 		private[nbt] val valp: Pickler[T]
 		private[nbt] val namep: Pickler[String]
 
-		final def unapply(n: NbtN): Option[T] = {
+		final def unapply(n: Nbt[_]): Option[T] = {
 			allCatch opt n.get[T](this)
 		}
 
@@ -20,25 +19,21 @@ final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 		}
 	}
 
-	type NbtSpec[A] = NbtSpecN { type T = A }
+	protected override type ProtectedElemType = NbtSpec[_]
 
-	protected override type ProtectedElemType = NbtSpecN
-
-	private object NbtSpec extends Pickler[NbtSpecN] {
+	private object NbtSpec extends Pickler[NbtSpec[_]] {
 		val id = base.byte
 
-		override val pickle: Pickle[NbtSpecN] = { (o, s) =>
-			id.pickle(o, getID(s).toByte)
+		override def pickle(o: O, n: NbtSpec[_]): Unit = {
+			id.pickle(o, getID(n).toByte)
 		}
-		override val unpickle: Unpickle[NbtSpecN] = { in =>
-			getElem(id.unpickle(in))
+		override def unpickle(i: I): NbtSpec[_] = {
+			getElem(id.unpickle(i))
 		}
-
 		def apply[A](implicit s: NbtSpec[A]) = s
 	}
 
-	sealed trait NbtN {
-		type T
+	sealed trait Nbt[T] {
 		val value: T
 		private[nbt] val spec: NbtSpec[T]
 
@@ -47,34 +42,34 @@ final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 		}
 	}
 
-	type Nbt[A] = NbtN { type T = A }
-
 	implicit def Nbt[A: NbtSpec](v: A): Nbt[A] = {
-		new NbtN {
-			override type T = A
+		new Nbt[A] {
 			override val spec = NbtSpec[A]
 			override val value = v
 			override val toString = s"Nbt($v)"
 		}
 	}
 
-	object Nbt extends Pickler[(String, NbtN)] {
-		override val pickle: Pickle[(String, NbtN)] = { (o, n) =>
-			val (name, nbt) = n
-			NbtSpec.pickle(o, nbt.spec)
-			nbt.spec.namep.pickle(o, name)
-			nbt.spec.valp.pickle(o, nbt.value)
+	object Nbt extends Pickler[(String, Nbt[_])] {
+		private def dec[A](o: O, m: String, n: Nbt[A]): Unit = {
+			NbtSpec.pickle(o, n.spec)
+			n.spec.namep.pickle(o, m)
+			n.spec.valp.pickle(o, n.value)
 		}
-		override val unpickle: Unpickle[(String, NbtN)] = { in =>
-			val spec = NbtSpec.unpickle(in)
-			val name = spec.namep.unpickle(in)
-			val body = spec.valp.unpickle(in)
-			(name, Nbt(body)(spec): NbtN)
+		private def enc[A](i: I, s: NbtSpec[A]) = {
+			val n = s.namep.unpickle(i)
+			val b = s.valp.unpickle(i)
+			(n, Nbt(b)(s))
+		}
+		override def pickle(o: O, n: (String, Nbt[_])): Unit = {
+			dec(o, n._1, n._2)
+		}
+		override def unpickle(i: I): (String, Nbt[_]) = {
+			enc(i, NbtSpec.unpickle(i))
 		}
 	}
 
-	sealed trait NbtSeqN {
-		type T
+	sealed trait NbtSeq[T] {
 		val value: Seq[T]
 		private[nbt] val spec: NbtSpec[T]
 
@@ -83,74 +78,74 @@ final class NbtEnv(base: BasePicklers) extends ProtectedEnum {
 		}
 	}
 
-	type NbtSeq[A] = NbtSeqN { type T = A }
-
 	def NbtSeq[A: NbtSpec](v: Seq[A]): NbtSeq[A] = {
-		new NbtSeqN {
-			override type T = A
+		new NbtSeq[A] {
 			override val spec = NbtSpec[A]
 			override val value = v
 			override val toString = s"NbtSeq($v)"
 		}
 	}
 
-	type NbtMap = Map[String, NbtN]
+	type NbtMap = Map[String, Nbt[_]]
 
-	object NbtEnd extends NbtSpecN with NbtN {
-		override type T = Null
+	object NbtEnd extends NbtSpec[Null] with Nbt[Null] {
 		override val value = null: Null
 		override private[nbt] val spec = this
 		override private[nbt] val valp = new Pickler[Null] {
-			override val pickle: Pickle[Null] = (o, n) => Unit
-			override val unpickle: Unpickle[Null] = in => null: Null
+			override def pickle(o: O, n: Null): Unit = {}
+			override def unpickle(i: I): Null = null: Null
 		}
 		override private[nbt] val namep = new Pickler[String] {
-			override val pickle: Pickle[String] = (_, _) => Unit
-			override val unpickle: Unpickle[String] = _ => ""
+			override def pickle(o: O, n: String): Unit = {}
+			override def unpickle(i: I): String = ""
 		}
 		val named: (String, Nbt[Null]) = ("", this)
 	}
 
 	private final class SeqPickler[T](p: Pickler[T]) extends Pickler[Seq[T]] {
-		override val pickle: Pickle[Seq[T]] = { (o, s) =>
-			base.int.pickle(o, s.size)
-			s.foreach(e => p.pickle(o, e))
+		override def pickle(o: O, n: Seq[T]): Unit = {
+			base.int.pickle(o, n.size)
+			n.foreach(e => p.pickle(o, e))
 		}
-		override val unpickle: Unpickle[Seq[T]] = { in =>
-			val size = base.int.unpickle(in)
-			def body = p.unpickle(in)
+		override def unpickle(i: I): Seq[T] = {
+			val size = base.int.unpickle(i)
+			def body = p.unpickle(i)
 			Seq.fill(size)(body)
 		}
 	}
 
-	private object NbtSeqPickler extends Pickler[NbtSeqN] {
-		override val pickle: Pickle[NbtSeqN] = { (o, s) =>
+	private object NbtSeqPickler extends Pickler[NbtSeq[_]] {
+		def dec[A](o: O, s: NbtSeq[A]): Unit = {
 			NbtSpec.pickle(o, s.spec)
 			base.int.pickle(o, s.value.size)
 			s.value.foreach(e => s.spec.valp.pickle(o, e))
 		}
-		override val unpickle: Unpickle[NbtSeqN] = { in =>
-			val spec = NbtSpec.unpickle(in)
-			val size = base.int.unpickle(in)
-			def body = spec.valp.unpickle(in)
-			NbtSeq(Seq.fill(size)(body))(spec): NbtSeqN
+		def enc[A](i: I, s: NbtSpec[A]): NbtSeq[A] = {
+			val size = base.int.unpickle(i)
+			def body = s.valp.unpickle(i)
+			NbtSeq(Seq.fill(size)(body))(s)
+		}
+		override def pickle(o: O, n: NbtSeq[_]): Unit = {
+			dec(o, n)
+		}
+		override def unpickle(i: I): NbtSeq[_] = {
+			enc(i, NbtSpec.unpickle(i))
 		}
 	}
 
 	private object NbtMapPickler extends Pickler[NbtMap] {
-		override val pickle: Pickle[NbtMap] = { (o, m) =>
-			m.foreach(e => Nbt.pickle(o, e))
+		override def pickle(o: O, n: NbtMap): Unit = {
+			n.foreach(Nbt.pickle(o, _))
 			Nbt.pickle(o, NbtEnd.named)
 		}
-		override val unpickle: Unpickle[NbtMap] = { in =>
-			def body = Nbt.unpickle(in)
-			def notEnd(e: (String, NbtN)) = e._2.spec != NbtEnd
+		override def unpickle(i: I): NbtMap = {
+			def body = Nbt.unpickle(i)
+			def notEnd(e: (String, Nbt[_])) = e._2.spec != NbtEnd
 			Stream.continually(body).takeWhile(notEnd).toMap
 		}
 	}
 
-	class NbtSpecAbs[A] private[NbtEnv](v: Pickler[A]) extends NbtSpecN {
-		override type T = A
+	class NbtSpecAbs[A] private[NbtEnv](v: Pickler[A]) extends NbtSpec[A] {
 		override val namep = base.string
 		override private[nbt] val valp = v
 	}
