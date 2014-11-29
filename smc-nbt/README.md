@@ -2,12 +2,15 @@
 
 Minecraft NBT (Named Binary Tag) serialization for Scala projects.
 
+Note that this library makes minimum effort for the I/O performance.<br>
+If you are looking for fast functions, this library may not be for you.
+
 ##Examples
 
 ###Reading
 
 	val in: DataInputStream = ???
-	val (name: String, tag: Nbt[_]) = Nbt.enc(i)
+	val (name: String, tag: Nbt[_]) = in.readNbt()
 
 ###Untagging
 
@@ -21,7 +24,7 @@ Minecraft NBT (Named Binary Tag) serialization for Scala projects.
 
 	val version: Nbt[Int] = NbtInt(19133)
 	val version: Nbt[Int] = Nbt(19133)
-	val version: Nbt[Int] = 19133 //Function `Nbt` is implicit
+	val version: Nbt[Int] = 19133
 	val foo = Nbt("".r) //Compile error; Regex is not of NBT type
 
 ###Writing
@@ -29,7 +32,7 @@ Minecraft NBT (Named Binary Tag) serialization for Scala projects.
 	val out: DataOutputStream = ???
 	val name: String = ???
 	val tag: Nbt[_] = ???
-	Nbt.dec(out, (name, tag))
+	out.writeNbt(name -> tag)
 
 ##Directions
 

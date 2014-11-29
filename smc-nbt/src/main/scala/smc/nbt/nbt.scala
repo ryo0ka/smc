@@ -3,15 +3,16 @@ package smc
 import nbt.IO._
 import scala.collection._
 import scala.annotation.implicitNotFound
+import scala.language.implicitConversions
 
 package object nbt extends Enum {
 
-	@implicitNotFound("Type $T is not of NBT.")
+	@implicitNotFound("${T} is not of NBT. You may want to import `smc.nbt._` and try again.")
 	sealed trait NbtSpec[T] extends Elem {
 		private[nbt] val valp: IO[T]
 		private[nbt] val namep: IO[String]
 
-		final def apply(v: T): Nbt[T] = Nbt(v)(this)
+		final def apply(v: T) = Nbt[T](v)(this)
 	}
 
 	protected override type ElemExtended = NbtSpec[_]
@@ -30,14 +31,6 @@ package object nbt extends Enum {
 	sealed trait Nbt[T] {
 		val value: T
 		private[nbt] val spec: NbtSpec[T]
-
-		final def get[U: NbtSpec]: U = {
-			value.asInstanceOf[U]
-		}
-
-		final def getSeq[U: NbtSpec]: Seq[U] = {
-			get[NbtSeq[_]](NbtSeq).get[U]
-		}
 	}
 
 	implicit def Nbt[A: NbtSpec](v: A): Nbt[A] = {
@@ -48,12 +41,22 @@ package object nbt extends Enum {
 		}
 	}
 
+	implicit final class NbtOp(val n: Nbt[_]) extends AnyVal {
+		def get[U: NbtSpec]: U = {
+			n.value.asInstanceOf[U]
+		}
+
+		def getSeq[U: NbtSpec]: Seq[U] = {
+			get(NbtSeq).get[U]
+		}
+	}
+
 	object Nbt extends IO[(String, Nbt[_])] {
 		override val dec: Dec[(String, Nbt[_])] = {
 			case (o, (m, n)) => decn(o, m, n)
 		}
 		override val enc: Enc[(String, Nbt[_])] = {
-			i => encn(i, NbtSpec.enc(i))
+			case i => encn(i, NbtSpec.enc(i))
 		}
 		private def decn[A](o: O, m: String, n: Nbt[A]): Unit = {
 			NbtSpec.dec(o, n.spec)
@@ -70,10 +73,6 @@ package object nbt extends Enum {
 	sealed trait NbtSeq[T] {
 		val value: Seq[T]
 		private[nbt] val spec: NbtSpec[T]
-
-		final def get[U: NbtSpec]: Seq[U] = {
-			value.asInstanceOf[Seq[U]]
-		}
 	}
 
 	def NbtSeq[A: NbtSpec](v: Seq[A]): NbtSeq[A] = {
@@ -84,6 +83,12 @@ package object nbt extends Enum {
 		}
 	}
 
+	implicit final class NbtSeqOp(val n: NbtSeq[_]) extends AnyVal {
+		def get[U: NbtSpec]: Seq[U] = {
+			n.value.asInstanceOf[Seq[U]]
+		}
+	}
+
 	type NbtMap = Map[String, Nbt[_]]
 
 	object NbtEnd extends NbtSpec[Null] with Nbt[Null] {
@@ -91,10 +96,10 @@ package object nbt extends Enum {
 		override private[nbt] val spec = this
 		override private[nbt] val valp = io[Null](_ => null, (_, _) => Unit)
 		override private[nbt] val namep = io[String](_ => "", (_, _) => Unit)
-		val named: (String, Nbt[Null]) = ("", this)
+		val entry: (String, Nbt[Null]) = ("", this)
 	}
 
-	private final class SeqPickler[T](p: IO[T]) extends IO[Seq[T]] {
+	private final case class SeqIO[T](p: IO[T]) extends IO[Seq[T]] {
 		override val dec: Dec[Seq[T]] = { (o, n) =>
 			o.writeInt(n.size)
 			n.foreach(p.dec(o, _))
@@ -106,7 +111,7 @@ package object nbt extends Enum {
 		}
 	}
 
-	private object NbtSeqPickler extends IO[NbtSeq[_]] {
+	private object NbtSeqIO extends IO[NbtSeq[_]] {
 		def decn[A](o: O, s: NbtSeq[A]): Unit = {
 			NbtSpec.dec(o, s.spec)
 			o.writeInt(s.value.size)
@@ -118,13 +123,13 @@ package object nbt extends Enum {
 			NbtSeq(Seq.fill(size)(body))(s)
 		}
 		override val dec: Dec[NbtSeq[_]] = { (o, n) => decn(o, n) }
-		override val enc: Enc[NbtSeq[_]] = { i => encn(i, NbtSpec.enc(i))}
+		override val enc: Enc[NbtSeq[_]] = { i => encn(i, NbtSpec.enc(i)) }
 	}
 
-	private object NbtMapPickler extends IO[NbtMap] {
+	private object NbtMapIO extends IO[NbtMap] {
 		override val dec: Dec[NbtMap] = { (o, n) =>
 			n.foreach(Nbt.dec(o, _))
-			Nbt.dec(o, NbtEnd.named)
+			Nbt.dec(o, NbtEnd.entry)
 		}
 		override val enc: Enc[NbtMap] = { i =>
 			def body = Nbt.enc(i)
@@ -133,20 +138,30 @@ package object nbt extends Enum {
 		}
 	}
 
-	class NbtSpecAbs[A] private[nbt](v: IO[A]) extends NbtSpec[A] {
-		override private[nbt] val namep = StringIO
-		override private[nbt] val valp = v
+	private def spec[A](v: IO[A]): NbtSpec[A] = {
+		new NbtSpec[A] {
+			override private[nbt] val namep = StringIO
+			override private[nbt] val valp = v
+		}
 	}
 
-	implicit object NbtByte extends NbtSpecAbs(ByteIO)
-	implicit object NbtShort extends NbtSpecAbs(ShortIO)
-	implicit object NbtInt extends NbtSpecAbs(IntIO)
-	implicit object NbtLong extends NbtSpecAbs(LongIO)
-	implicit object NbtFloat extends NbtSpecAbs(FloatIO)
-	implicit object NbtDouble extends NbtSpecAbs(DoubleIO)
-	implicit object NbtBytes extends NbtSpecAbs(new SeqPickler(ByteIO))
-	implicit object NbtString extends NbtSpecAbs(StringIO)
-	implicit object NbtSeq extends NbtSpecAbs(NbtSeqPickler)
-	implicit object NbtMap extends NbtSpecAbs(NbtMapPickler)
-	implicit object NbtInts extends NbtSpecAbs(new SeqPickler(IntIO))
+	implicit val NbtByte   = spec(ByteIO)
+	implicit val NbtShort  = spec(ShortIO)
+	implicit val NbtInt    = spec(IntIO)
+	implicit val NbtLong   = spec(LongIO)
+	implicit val NbtFloat  = spec(FloatIO)
+	implicit val NbtDouble = spec(DoubleIO)
+	implicit val NbtBytes  = spec(SeqIO(ByteIO))
+	implicit val NbtString = spec(StringIO)
+	implicit val NbtSeq    = spec(NbtSeqIO)
+	implicit val NbtMap    = spec(NbtMapIO)
+	implicit val NbtInts   = spec(SeqIO(IntIO))
+
+	implicit class NbtI(val i: I) extends AnyVal {
+		def readNbt(): (String, Nbt[_]) = Nbt.enc(i)
+	}
+
+	implicit class NbtO(val o: O) extends AnyVal {
+		def writeNbt(n: (String, Nbt[_])): Unit = Nbt.dec(o, n)
+	}
 }
