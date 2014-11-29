@@ -10,12 +10,14 @@ Just import `smc.nbt._` and everything is set!
 	val in: DataInputStream = ???
 	val (name: String, tag: Nbt[_]) = Nbt.enc(in)
 	val (name, tag) = in.readNbt()
+	val (name, NbtMap(root)) = in.readNbt()
 
 ###Untagging
 
 	val tag: Nbt[_] = ???
 	val d: Double = tag.get
 	val d = tag.get[Double]
+	val NbtDouble(d) = tag
 	val ds: Seq[Double] = tag.getSeq //expecting TAG_List
 	val e = tag.get[Regex] //Compile error: "Regex is not of NBT type."
 	val b: Boolean = tag.get[Byte].toBool

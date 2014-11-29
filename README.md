@@ -6,9 +6,12 @@ Minecraft world I/O utility for Scala projects.
 
 NBT (Named Binary Tag) serialization.
 
-	val level: DataInputStream = ...
-	val ("", NbtMap(root)) = Nbt.enc(level)
-	val NbtInt(version) = root("version")
+	val dat: DataInputStream = ???
+	val ("", NbtMap(root)) = dat.readNbt()
+	val NbtInt(version) = root("version") //Int
+
+	val dat: DataOutputStream = ???
+	dat.writeNbt("" -> root)
 
 ##smc-level
 

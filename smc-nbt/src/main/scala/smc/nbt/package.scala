@@ -13,6 +13,7 @@ package object nbt extends Enum {
 		private[nbt] val name: IO[String]
 
 		final def apply(v: T) = Nbt[T](v)(this)
+		final def unapply(n: Nbt[_]) = Some(n.get[T](this))
 	}
 
 	protected override type ElemExtended = NbtSpec[_]
