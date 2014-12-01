@@ -1,7 +1,7 @@
 package smc
 
 import nbt.IO._
-import scala.collection._
+import scala.collection.immutable._
 import scala.annotation.implicitNotFound
 import scala.language.implicitConversions
 
@@ -40,9 +40,9 @@ package object nbt extends Enum {
 			n.spec.value.dec(o, n.value)
 		}
 		private def encn[A](i: I, s: NbtSpec[A]) = {
-			val n = s.name.enc(i)
-			val b = s.value.enc(i)
-			(n, Nbt(b)(s))
+			val m = s.name.enc(i)
+			val n = s.value.enc(i)
+			(m, Nbt(n)(s))
 		}
 		override val dec: Dec[(String, Nbt[_])] = {
 			case (o, (m, n)) => decn(o, m, n)
@@ -55,13 +55,6 @@ package object nbt extends Enum {
 	final case class NbtSeq[T](value: Seq[T])(implicit val spec: NbtSpec[T])
 
 	type NbtMap = Map[String, Nbt[_]]
-
-	object NbtEnd extends NbtSpec[Null] {
-		override private[nbt] val value = io[Null](_ => null, (_, _) => Unit)
-		override private[nbt] val name = io[String](_ => "", (_, _) => Unit)
-		val nbt: Nbt[Null] = this(null: Null)
-		val entry: (String, Nbt[Null]) = ("", nbt)
-	}
 
 	private final case class SeqIO[T](p: IO[T]) extends IO[Seq[T]] {
 		override val dec: Dec[Seq[T]] = { (o, n) =>
@@ -91,16 +84,23 @@ package object nbt extends Enum {
 	}
 
 	private object NbtMapIO extends IO[NbtMap] {
+		private val end = ("", NbtsEnd(null: Null))
+		private val notEnd = end != (_: Any)
+
 		override val dec: Dec[NbtMap] = { (o, n) =>
 			n.foreach(Nbt.dec(o, _))
-			Nbt.dec(o, NbtEnd.entry)
-		}
-		private def notEnd(e: (String, Nbt[_])): Boolean = {
-			e._2.spec != NbtEnd
+			Nbt.dec(o, end)
 		}
 		override val enc: Enc[NbtMap] = { i =>
 			def body = Nbt.enc(i)
 			Iterator.continually(body).takeWhile(notEnd).toMap
+		}
+	}
+
+	private val NbtsEnd: NbtSpec[Null] = {
+		new NbtSpec[Null] {
+			override val value = io[Null](_ => null, (_, _) => Unit)
+			override val name = io[String](_ => "", (_, _) => Unit)
 		}
 	}
 

@@ -1,12 +1,8 @@
 package smc.level
 
-import smc.nbt._
-
-trait Level {
-	val version: Int
-	val initialized: Boolean
-	val levelName: String
-	val seed: Long
-	val generator: Generator
-
-}
+case class Level(
+	version: Int,
+	initialized: Boolean,
+	levelName: String,
+	seed: Long,
+	generator: Generator)
