@@ -18,7 +18,7 @@ Just import `smc.nbt._` and everything is set!
 	val d: Double = tag.get
 	val d = tag.get[Double]
 	val NbtDouble(d) = tag
-	val ds: Seq[Double] = tag.getSeq //expecting TAG_List
+	val ds: Seq[Double] = tag.seq //expecting TAG_List
 	val e = tag.get[Regex] //Compile error: "Regex is not of NBT type."
 	val b: Boolean = tag.get[Byte].toBool
 
