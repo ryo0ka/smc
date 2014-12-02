@@ -8,7 +8,7 @@ Just import `smc.nbt._` and everything is set!
 ###Reading
 
 	val in: DataInputStream = ???
-	val (name: String, tag: Nbt[_]) = Nbt.enc(in)
+	val (name: String, tag: Nbt[_]) = NbtIO.enc(in)
 	val (name, tag) = in.readNbt()
 	val (name, NbtMap(root)) = in.readNbt()
 
@@ -35,7 +35,7 @@ Just import `smc.nbt._` and everything is set!
 	val out: DataOutputStream = ???
 	val name: String = ???
 	val tag: Nbt[_] = ???
-	Nbt.dec(out, name -> tag)
+	NbtIO.dec(out, name -> tag)
 	out.writeNbt(name -> tag)
 
 ##References
