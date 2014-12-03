@@ -54,7 +54,7 @@ Or use `#getOpt[A]:Option[A]` for safety.
 
 	val tag: Nbt[_] = ???
 	val b = tag.get[Byte]
-	val bo = tag.getOpt[Byte]
+	val ob = tag.getOpt[Byte]
 
 Use `#seq[A]:Seq[A]` and `#seqOpt[A]:Option[Seq[A]]` to untag TAG_List.<br>
 You may read [about NbtSeq](#seq) for the detail.
@@ -161,7 +161,7 @@ Read [about NbtSpec](#spec) for the detail.
 Untagging `Nbt[NbtSeq[_]]` incorporates two type operations.
 
 	val sb = tag.get[NbtSeq[_]].get[Byte]
-	val sbo = tag.getOpt[NbtSeq[_]].flatMap(_.getOpt[Byte])
+	val osb = tag.getOpt[NbtSeq[_]].flatMap(_.getOpt[Byte])
 
 Use `Nbt`'s shortcut methods `#seq[A]:Seq[A]` and `#seqOpt[A]:Option[Seq[A]]` instead.
 
@@ -171,9 +171,9 @@ Use `Nbt`'s shortcut methods `#seq[A]:Seq[A]` and `#seqOpt[A]:Option[Seq[A]]` in
 Making a TAG_List requires an explicit conversion from `Seq[A]` to `NbtSeq[A]`.
 
 	val sb: Seq[Byte] = ???
-	val tag: Nbt[_] = sb //becomes TAG_Byte_Array
+	val tag = Nbt(sb) //becomes TAG_Byte_Array
 	val nsb = NbtSeq(sb)
-	val tag: Nbt[_] = nsb //becomes TAG_List of Byte
+	val tag = Nbt(nsb) //becomes TAG_List of Byte
 
 ###NbtMap
 `NbtMap` is **not** `Nbt` but any types that inherit `scala.collection.immutbale.Map[String, Nbt[_]]`.<br>
