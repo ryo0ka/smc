@@ -1,42 +1,208 @@
 #smc-nbt
 
-Minecraft NBT (Named Binary Tag) serialization for Scala projects.<br>
-Just import `smc.nbt._` and everything is set!
+Minecraft NBT (Named Binary Tag) serialization and type-safe operation.
+
+##Motivation
+
+How to modify the level name in a `level.dat` file using smc-nbt:
+
+	val file: File = ???
+	val in = new DataInputStream(new GZIPInputStream(new FileInputStream(file)))
+	val out = new DataOutputStream(new GZIPOutputStream(new FileOutputStream(file)))
+
+	import smc.nbt._
+
+	val data = in.readNbt.get[NbtMap].apply("Data").get[NbtMap]
+	val data2 = data + ("LevelName" -> "New World")
+	out.writeNbt("" -> NbtMap("Data" -> data2))
 
 ##Functions
+Import `smc.nbt._` and every function is available.
+
+Note that tag names are optimized in the Java manner:
+
+|Original name |nbt-smc name (type)          |
+|:-------------|:----------------------------|
+|TAG_End       |NbtEnd(`Null`)               |
+|TAG_Byte      |NbtByte                      |
+|TAG_Short     |NbtShort                     |
+|TAG_Int       |NbtInt                       |
+|TAG_Long      |NbtLong                      |
+|TAG_Float     |NbtFloat                     |
+|TAG_Double    |NbtDouble                    |
+|TAG_Byte_Array|NbtBytes(`Seq[Byte]`)        |
+|TAG_String    |NbtString                    |
+|TAG_List      |NbtSeq(`NbtSeq`)             |
+|TAG_Compound  |NbtMap(`Map[String, Nbt[_]]`)|
+|TAG_Int_Array |NbtInts(`Seq[Int]`)          |
 
 ###Reading
+An NBT is stored with a name in a byte stream.<br>
+Use `NbtIO#enc(DataInputStream):(String, Nbt[_])` to read the pair.<br>
+Or use a friendly shortcut `DataInputStream#readNbt():(String, Nbt[_])`.
 
 	val in: DataInputStream = ???
-	val (name: String, tag: Nbt[_]) = NbtIO.enc(in)
+	val (name, tag) = NbtIO.enc(in)
 	val (name, tag) = in.readNbt()
-	val (name, NbtMap(root)) = in.readNbt()
 
 ###Untagging
+A read `Nbt` instance's type parameter is erased and therefore `Any`.
+
+Use `Nbt[_]#get[A]:A` to cast and extract the value.<br>
+Or use `#getOpt[A]:Option[A]` for safety.
 
 	val tag: Nbt[_] = ???
-	val d: Double = tag.get
-	val d = tag.get[Double]
-	val NbtDouble(d) = tag
-	val ds: Seq[Double] = tag.seq //expecting TAG_List
-	val e = tag.get[Regex] //Compile error: "Regex is not of NBT type."
-	val b: Boolean = tag.get[Byte].toBool
+	val b = tag.get[Byte]
+	val bo = tag.getOpt[Byte]
+
+For TAG_List, use shortcut methods `#seq[A]: Seq[A]` and `#seqOpt[A]:Option[Seq[A]]`.<br>
+You may read [about NbtSeq](#seq) for the detail.
+
+	val sb = tag.seq[Byte]
+	val osb = tag.seqOpt[Byte]
+
+Impossible types will cause a compile error.
+
+	tag.get[Regex] //croaks "Regex is not of NBT type."
+
+You may use `NbtSpec[A]#unapply(Nbt[_]):Option[A]` for convenience and clarity.
+
+	tag match {
+	  case NbtByte(n) =>
+	  case NbtString(n) =>
+	  case NbtSeq(n) =>
+	  case NbtMap(n) =>
+	}
+
+	val NbtMap(root) = tag
 
 ###Tagging
 
-	val version: Nbt[Int] = NbtInt(19133)
-	val version: Nbt[Int] = Nbt(19133)
-	val version: Nbt[Int] = 19133
-	val e = Nbt("".r) //Compile error: "Regex is not of NBT type."
-	val b: Nbt[Byte] = true.toByte
+Use `Nbt[A](A):Nbt[A]` to tag a value.<br>
+Confirmed types will be implicily converted to `Nbt`.
+
+	val tag: Nbt[String] = Nbt("New World")
+	val tag: Nbt[String] = "New World"
+
+For TAG_List, wrap the `Seq` with `NbtSeq`.<br>
+You may read [about NbtSeq](#seq) for the detail.
+
+	val ss = Seq("a", "b", "c")
+	val tag = NbtSeq(ss)
+
+Impossible types will cause a compie error.
+
+	Nbt("".r) //croaks "Regex is not of NBT type."
+
+You may use `NbtSpec[A]#apply(A):Nbt[A]` for convenience and clarity.
+
+	val tag = NbtString("New World")
 
 ###Writing
 
+Use `NbtIO#dec(DataOutputStream,(String, Nbt[_])):Unit`,<br>
+or a shortcut `DataOutputStream#writeNbt((String, Nbt[_])):Unit`.
+
 	val out: DataOutputStream = ???
-	val name: String = ???
-	val tag: Nbt[_] = ???
 	NbtIO.dec(out, name -> tag)
 	out.writeNbt(name -> tag)
+
+###Boolean
+`Boolean` as 0 or 1 of `Byte` is often used in NBT operation.<br>
+Use `Byte#toBool:Boolean` and `Boolean#toByte:Byte` for the conversion.
+
+	val b = nbt.get[Byte].toBool
+	val b: Nbt[Byte] = true.toByte
+
+##Farther Information
+###Nbt
+`Nbt` is a trait that represents any tags.
+
+	trait Nbt[A] {
+	  val value: A
+	  val spec: NbtSpec[A]
+	}
+
+Two methods are injected to any `Nbt` instances to extract their type-erased values.<br>
+See also [about NbtSpec](#spec).
+
+	def get[A: NbtSpec]: A
+	def getOpt[A: NbtSpec]: Option[A]
+
+Another pair of methods are also injected specifically to untag TAG_List.<br>
+See also the following information about `NbtSeq`.
+
+	def seq[A: NbtSpec]: Seq[A]
+	def seqOpt[A: NbtSpec]: Option[Seq[A]]
+
+###NbtSeq<a name="seq"></a>
+`NbtSeq` is **not** `Nbt` but another trait that represents the contents of Tag_List.
+
+	trait NbtSeq[A] {
+	  val value: Seq[A]
+	  val spec: NbtSpec[A]
+	}
+
+A `TAG_List` of `String` in smc-nbt is printed out as:
+
+	Nbt(NbtSeq(Seq("a", "b", "c")))
+
+Two methods are injected to any `NbtSeq` instances to untag the `Seq`.<br>
+See also [about NbtSpec](#spec).
+
+	def get[A: NbtSpec]: Seq[A]
+	def getOpt[A: NbtSpec]: Option[Seq[A]]
+
+Untagging `Nbt[NbtSeq[_]]` incorporates two untagging operations.
+
+	val sb = tag.get[NbtSeq[_]].get[Byte]
+	val sbo = tag.getOpt[NbtSeq[_]].flatMap(_.getOpt[Byte])
+
+Use `Nbt`'s shortcut methods `#seq[A]:Seq[A]` and `#seqOpt[A]:Option[Seq[A]]` instead.<br>
+See also the information about `Nbt` above.
+
+	val sb = tag.seq[Byte]
+	val osb = tag.seqOpt[Byte]
+
+Tagging `NbtSeq` requires an explicit conversion from `Seq[A]` to `NbtSeq[A]`.
+
+	val sb: Seq[Byte] = ???
+	val tag: Nbt[_] = sb //becomes TAG_Byte_Array
+	val nsb = NbtSeq(sb)
+	val tag: Nbt[_] = nsb //becomes TAG_List of Byte
+
+###NbtMap
+`NbtMap` is **not** `Nbt` but any types that inherit `scala.collection.immutbale.Map[String, Nbt[_]]`.<br>
+`NbtMap` represents the contents of TAG_Compound.
+
+A TAG_Compound in smc-nbt is printed out as:
+
+	Nbt(Map("LevelName" -> Nbt("New World"), "version" -> Nbt(19133)))
+
+###NbtSpec<a name="spec"></a>
+An instance of `NbtSpec[A]` proves that the type `A` is of NBT.<br>
+The construction is sealed in `smc.nbt/package.scala` but instances are public.<br>
+
+Use `NbtSpec$#apply[A]: NbtSpec[A]` to shortcut `implicitly[NbtSpec[A]]`.
+
+	def foo[A: NbtSpec] = {
+	  val spec = NbtSpec[A]
+	}
+
+Use `NbtSpec[A]#apply(A):Nbt[A]` for clearer construction of tags.
+
+	val tag = NbtInt(3)
+
+Use `NbtSpec[A]#unapply(Nbt[_]):Option[Nbt[A]]` for pattern matching and clearer untagging.
+
+	tag match {
+	  case NbtByte(n) =>
+	  case NbtString(n) =>
+	  case NbtSeq(n) =>
+	  case NbtMap(n) =>
+	}
+
+	val NbtMap(root) = tag
 
 ##References
 

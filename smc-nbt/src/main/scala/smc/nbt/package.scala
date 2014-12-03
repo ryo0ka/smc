@@ -96,11 +96,11 @@ package object nbt extends Enum {
 	private object NbtMapIO extends IO[NbtMap] {
 		override val dec: Dec[NbtMap] = { (o, n) =>
 			n.foreach(NbtIO.dec(o, _))
-			NbtIO.dec(o, "" -> NbtEnd)
+			NbtIO.dec(o, "" -> Nbt(null)(NbtEnd))
 		}
 		override val enc: Enc[NbtMap] = { i =>
 			def body = NbtIO.enc(i)
-			Iterator.continually(body).takeWhile(_._2 ne NbtEnd).toMap
+			Iterator.continually(body).takeWhile(_._2.spec ne NbtEnd).toMap
 		}
 	}
 
@@ -118,11 +118,9 @@ package object nbt extends Enum {
 		}
 	}
 
-	private val NbtEnd: NbtSpec[Null] with Nbt[Null] = {
-		new NbtSpec[Null] with Nbt[Null] {
-			override val value = null: Null
-			override val spec = this
-			override val ttag = TypeTag[Null]
+	implicit  val NbtEnd: NbtSpec[Null] = {
+		new NbtSpec[Null]  {
+			override val ttag = typeTag[Null]
 			override val valueIO = io[Null](_ => null, (_, _) => Unit)
 			override val nameIO = io[String](_ => "", (_, _) => Unit)
 		}
@@ -168,11 +166,14 @@ package object nbt extends Enum {
 			val tU = NbtSpec[U].ttag.tpe
 			if (tT <:< tU) Some(get[U]) else None
 		}
+	}
+
+	implicit class NbtOpSeq(val n: Nbt[_]) extends AnyVal {
 		def seq[U: NbtSpec]: Seq[U] = {
-			get(NbtSeq).get[U]
+			n.get(NbtSeq).get[U]
 		}
 		def seqOpt[U: NbtSpec]: Option[Seq[U]] = {
-			getOpt(NbtSeq).flatMap(_.getOpt[U])
+			n.getOpt(NbtSeq).flatMap(_.getOpt[U])
 		}
 	}
 
