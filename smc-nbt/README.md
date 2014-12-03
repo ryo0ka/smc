@@ -1,6 +1,6 @@
 #smc-nbt
 
-Minecraft NBT (Named Binary Tag) serialization and type-safe operation.
+Minecraft NBT (Named Binary Tag) serialization and type-safe operation for Scala projects.
 
 ##Motivation
 
@@ -56,7 +56,7 @@ Or use `#getOpt[A]:Option[A]` for safety.
 	val b = tag.get[Byte]
 	val bo = tag.getOpt[Byte]
 
-For TAG_List, use shortcut methods `#seq[A]: Seq[A]` and `#seqOpt[A]:Option[Seq[A]]`.<br>
+Use `#seq[A]:Seq[A]` and `#seqOpt[A]:Option[Seq[A]]` to untag TAG_List.<br>
 You may read [about NbtSeq](#seq) for the detail.
 
 	val sb = tag.seq[Byte]
@@ -66,7 +66,8 @@ Impossible types will cause a compile error.
 
 	tag.get[Regex] //croaks "Regex is not of NBT type."
 
-You may use `NbtSpec[A]#unapply(Nbt[_]):Option[A]` for convenience and clarity.
+You may also use `NbtSpec[A]#unapply(Nbt[_]):Option[A]`.<br>
+Read [about NbtSpec](#spec) for the detail.
 
 	tag match {
 	  case NbtByte(n) =>
@@ -85,8 +86,8 @@ Confirmed types will be implicily converted to `Nbt`.
 	val tag: Nbt[String] = Nbt("New World")
 	val tag: Nbt[String] = "New World"
 
-For TAG_List, wrap the `Seq` with `NbtSeq`.<br>
-You may read [about NbtSeq](#seq) for the detail.
+Use `NbtSeq#apply[A](A):NbtSeq[A]` to make a TAG_List.<br>
+Read [about NbtSeq](#seq) for the detail.
 
 	val ss = Seq("a", "b", "c")
 	val tag = NbtSeq(ss)
@@ -95,7 +96,8 @@ Impossible types will cause a compie error.
 
 	Nbt("".r) //croaks "Regex is not of NBT type."
 
-You may use `NbtSpec[A]#apply(A):Nbt[A]` for convenience and clarity.
+You may also use `NbtSpec[A]#apply(A):Nbt[A]`.<br>
+Read [about NbtSpec](#spec) for the detail.
 
 	val tag = NbtString("New World")
 
@@ -109,14 +111,16 @@ or a shortcut `DataOutputStream#writeNbt((String, Nbt[_])):Unit`.
 	out.writeNbt(name -> tag)
 
 ###Boolean
-`Boolean` as 0 or 1 of `Byte` is often used in NBT operation.<br>
-Use `Byte#toBool:Boolean` and `Boolean#toByte:Byte` for the conversion.
+`Boolean` is often used as another representation of `Byte` in NBT operations.<br>
+Use `Byte#toBool:Boolean` and `Boolean#toByte:Byte` for the conversion.<br>
 
 	val b = nbt.get[Byte].toBool
 	val b: Nbt[Byte] = true.toByte
 
+Note that `Nbt[Boolean]` never exists (read [about NbtSpec](#spec) for the detail.)
+
 ##Farther Information
-###Nbt
+###Nbt<a name="nbt"></a>
 `Nbt` is a trait that represents any tags.
 
 	trait Nbt[A] {
@@ -125,13 +129,13 @@ Use `Byte#toBool:Boolean` and `Boolean#toByte:Byte` for the conversion.
 	}
 
 Two methods are injected to any `Nbt` instances to extract their type-erased values.<br>
-See also [about NbtSpec](#spec).
+Read [about NbtSpec](#spec) for the detail.
 
 	def get[A: NbtSpec]: A
 	def getOpt[A: NbtSpec]: Option[A]
 
 Another pair of methods are also injected specifically to untag TAG_List.<br>
-See also the following information about `NbtSeq`.
+Read [about NbtSpec](#spec) for the detail.
 
 	def seq[A: NbtSpec]: Seq[A]
 	def seqOpt[A: NbtSpec]: Option[Seq[A]]
@@ -149,7 +153,7 @@ A `TAG_List` of `String` in smc-nbt is printed out as:
 	Nbt(NbtSeq(Seq("a", "b", "c")))
 
 Two methods are injected to any `NbtSeq` instances to untag the `Seq`.<br>
-See also [about NbtSpec](#spec).
+Read [about NbtSpec](#spec) for the detail.
 
 	def get[A: NbtSpec]: Seq[A]
 	def getOpt[A: NbtSpec]: Option[Seq[A]]
@@ -160,7 +164,7 @@ Untagging `Nbt[NbtSeq[_]]` incorporates two untagging operations.
 	val sbo = tag.getOpt[NbtSeq[_]].flatMap(_.getOpt[Byte])
 
 Use `Nbt`'s shortcut methods `#seq[A]:Seq[A]` and `#seqOpt[A]:Option[Seq[A]]` instead.<br>
-See also the information about `Nbt` above.
+Read [about Nbt](#nbt) for the detail.
 
 	val sb = tag.seq[Byte]
 	val osb = tag.seqOpt[Byte]
