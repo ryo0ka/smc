@@ -22,23 +22,23 @@ Import `smc.nbt._` and every function is available.
 
 Note that tag names are optimized in the Java manner:
 
-|Original name |nbt-smc name (type)          |
-|:-------------|:----------------------------|
-|TAG_End       |NbtEnd(`Null`)               |
-|TAG_Byte      |NbtByte                      |
-|TAG_Short     |NbtShort                     |
-|TAG_Int       |NbtInt                       |
-|TAG_Long      |NbtLong                      |
-|TAG_Float     |NbtFloat                     |
-|TAG_Double    |NbtDouble                    |
-|TAG_Byte_Array|NbtBytes(`Seq[Byte]`)        |
-|TAG_String    |NbtString                    |
-|TAG_List      |NbtSeq(`NbtSeq`)             |
-|TAG_Compound  |NbtMap(`Map[String, Nbt[_]]`)|
-|TAG_Int_Array |NbtInts(`Seq[Int]`)          |
+|Original name |nbt-smc name (type)  |
+|:-------------|:--------------------|
+|TAG_End       |NbtEnd(`Null`)       |
+|TAG_Byte      |NbtByte              |
+|TAG_Short     |NbtShort             |
+|TAG_Int       |NbtInt               |
+|TAG_Long      |NbtLong              |
+|TAG_Float     |NbtFloat             |
+|TAG_Double    |NbtDouble            |
+|TAG_Byte_Array|NbtBytes(`Seq[Byte]`)|
+|TAG_String    |NbtString            |
+|TAG_List      |NbtSeq(`NbtSeq`)     |
+|TAG_Compound  |NbtMap(`NbtMap`)     |
+|TAG_Int_Array |NbtInts(`Seq[Int]`)  |
 
 ###Reading
-An NBT is stored with a name in a byte stream.<br>
+A tag is stored with a name in a byte stream.<br>
 Use `NbtIO#enc(DataInputStream):(String, Nbt[_])` to read the pair.<br>
 Or use a friendly shortcut `DataInputStream#readNbt():(String, Nbt[_])`.
 
@@ -81,7 +81,7 @@ Read [about NbtSpec](#spec) for the detail.
 ###Tagging
 
 Use `Nbt[A](A):Nbt[A]` to tag a value.<br>
-Confirmed types will be implicily converted to `Nbt`.
+Also confirmed types will be implicily converted to `Nbt`.
 
 	val tag: Nbt[String] = Nbt("New World")
 	val tag: Nbt[String] = "New World"
@@ -128,7 +128,7 @@ Note that `Nbt[Boolean]` never exists (read [about NbtSpec](#spec) for the detai
 	  val spec: NbtSpec[A]
 	}
 
-Two methods are injected to any `Nbt` instances to extract their type-erased values.<br>
+Two methods are injected to any `Nbt` instances to extract their type-erased value.<br>
 Read [about NbtSpec](#spec) for the detail.
 
 	def get[A: NbtSpec]: A
@@ -152,24 +152,23 @@ A `TAG_List` of `String` in smc-nbt is printed out as:
 
 	Nbt(NbtSeq(Seq("a", "b", "c")))
 
-Two methods are injected to any `NbtSeq` instances to untag the `Seq`.<br>
+Two methods are injected to any `NbtSeq` instances to extract their type-erased `Seq`.<br>
 Read [about NbtSpec](#spec) for the detail.
 
 	def get[A: NbtSpec]: Seq[A]
 	def getOpt[A: NbtSpec]: Option[Seq[A]]
 
-Untagging `Nbt[NbtSeq[_]]` incorporates two untagging operations.
+Untagging `Nbt[NbtSeq[_]]` incorporates two type operations.
 
 	val sb = tag.get[NbtSeq[_]].get[Byte]
 	val sbo = tag.getOpt[NbtSeq[_]].flatMap(_.getOpt[Byte])
 
-Use `Nbt`'s shortcut methods `#seq[A]:Seq[A]` and `#seqOpt[A]:Option[Seq[A]]` instead.<br>
-Read [about Nbt](#nbt) for the detail.
+Use `Nbt`'s shortcut methods `#seq[A]:Seq[A]` and `#seqOpt[A]:Option[Seq[A]]` instead.
 
 	val sb = tag.seq[Byte]
 	val osb = tag.seqOpt[Byte]
 
-Tagging `NbtSeq` requires an explicit conversion from `Seq[A]` to `NbtSeq[A]`.
+Making a TAG_List requires an explicit conversion from `Seq[A]` to `NbtSeq[A]`.
 
 	val sb: Seq[Byte] = ???
 	val tag: Nbt[_] = sb //becomes TAG_Byte_Array
@@ -186,9 +185,9 @@ A TAG_Compound in smc-nbt is printed out as:
 
 ###NbtSpec<a name="spec"></a>
 An instance of `NbtSpec[A]` proves that the type `A` is of NBT.<br>
-The construction is sealed in `smc.nbt/package.scala` but instances are public.<br>
+The construction is sealed but the instances are visible from anywhere.
 
-Use `NbtSpec$#apply[A]: NbtSpec[A]` to shortcut `implicitly[NbtSpec[A]]`.
+Use `NbtSpec$#apply[A]: NbtSpec[A]` to take a shortcut to `implicitly[NbtSpec[A]]`.
 
 	def foo[A: NbtSpec] = {
 	  val spec = NbtSpec[A]
