@@ -118,7 +118,7 @@ package object nbt extends Enum {
 		}
 	}
 
-	implicit  val NbtEnd: NbtSpec[Null] = {
+	implicit val NbtEnd: NbtSpec[Null] = {
 		new NbtSpec[Null]  {
 			override val ttag = typeTag[Null]
 			override val valueIO = io[Null](_ => null, (_, _) => Unit)
