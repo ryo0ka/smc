@@ -12,9 +12,10 @@ How to modify the level name in a `level.dat` file using smc-nbt:
 
 	import smc.nbt._
 
-	val data = in.readNbt.get[NbtMap].apply("Data").get[NbtMap]
-	val data2 = data + ("LevelName" -> "New World")
-	out.writeNbt("" -> NbtMap("Data" -> data2))
+	val ("", NbtMap(root)) = in.readNbt
+	var NbtMap(data) = root("Data")
+	data += "LevelName" -> "Shirakawa"
+	out.writeNbt("" -> Map("Data" -> data))
 
 ##Functions
 Import `smc.nbt._` and every function is available.
