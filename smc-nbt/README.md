@@ -119,7 +119,7 @@ Use `Byte#toBool:Boolean` and `Boolean#toByte:Byte` for the conversion.<br>
 
 Note that `Nbt[Boolean]` never exists (read [about NbtSpec](#spec) for the detail.)
 
-##Farther Information
+##Details
 ###Nbt<a name="nbt"></a>
 `Nbt` is a trait that represents any tags.
 
