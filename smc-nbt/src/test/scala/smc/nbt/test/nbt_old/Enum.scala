@@ -1,4 +1,4 @@
-package smc.nbt
+package smc.nbt.test.nbt_old
 
 import scala.collection.mutable.ArrayBuffer
 

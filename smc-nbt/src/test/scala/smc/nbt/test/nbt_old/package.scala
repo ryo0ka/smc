@@ -1,20 +1,20 @@
-package smc
+package smc.nbt.test
 
-import nbt.IO._
-import scala.collection.immutable._
+import nbt_old.IO._
 import scala.annotation.implicitNotFound
+import scala.collection.immutable._
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe._
 
-package object nbt extends Enum {
+package object nbt_old extends Enum {
 	protected override type ElemExtended = NbtSpec[_]
 
 	@implicitNotFound("${T} is not of NBT.")
 	sealed trait NbtSpec[T] extends Elem {
 		val ttag: TypeTag[T]
 
-		private[nbt] val valueIO: IO[T]
-		private[nbt] val nameIO: IO[String]
+		private[nbt_old$] val valueIO: IO[T]
+		private[nbt_old$] val nameIO: IO[String]
 
 		final def apply(t: T): Nbt[T] = Nbt(t)(this)
 		final def unapply(n: Nbt[_]): Option[T] = n.getOpt[T](this)
@@ -22,7 +22,7 @@ package object nbt extends Enum {
 	
 	def NbtSpec[A](implicit s: NbtSpec[A]): NbtSpec[A] = s
 
-	private[nbt] object NbtSpecIO extends IO[NbtSpec[_]] {
+	private[nbt_old$] object NbtSpecIO extends IO[NbtSpec[_]] {
 		override val dec: Dec[NbtSpec[_]] = { (o, n) =>
 			o.writeByte(getID(n))
 		}
@@ -129,8 +129,8 @@ package object nbt extends Enum {
 	private def spec[A: TypeTag](v: IO[A], n: IO[String] = StringIO): NbtSpec[A] = {
 		new NbtSpec[A] {
 			override val ttag = typeTag[A]
-			override private[nbt] val nameIO = n
-			override private[nbt] val valueIO = v
+			override private[nbt_old$] val nameIO = n
+			override private[nbt_old$] val valueIO = v
 		}
 	}
 

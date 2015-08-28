@@ -1,4 +1,7 @@
 name := "smc"
 
-val `smc-nbt` = project.in(file("smc-nbt"))
-val `smc-level` = project.in(file("smc-level")).dependsOn(`smc-nbt`)
+version := "1.0"
+
+scalaVersion := "2.11.4"
+
+libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value

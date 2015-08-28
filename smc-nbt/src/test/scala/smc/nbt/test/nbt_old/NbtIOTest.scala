@@ -1,6 +1,6 @@
-package smc.nbt
+package smc.nbt.test.nbt_old
 
-object NbtTest extends App {
+object NbtIOTest extends App {
 	import java.io._
 	import java.util.zip._
 

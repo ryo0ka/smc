@@ -1,10 +1,10 @@
-package smc.nbt
+package smc.nbt.test.nbt_old
 
 import java.io._
 
 object IO {
-	type I = DataInputStream
-	type O = DataOutputStream
+	type I = DataInput
+	type O = DataOutput
 
 	type Enc[+A] = I => A
 	type Dec[-A] = (O, A) => Unit
