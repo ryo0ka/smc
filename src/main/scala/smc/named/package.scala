@@ -21,38 +21,38 @@ package smc
  * }}}
  */
 package object named {
-	/**
-	 * [[Tuple2]] where the first type is [[String]].
-	 */
-	type Named[+A] = (String, A)
+  /**
+   * [[Tuple2]] where the first type is [[String]].
+   */
+  type Named[+A] = (String, A)
 
-	/**
-	 * Constructs a [[Named]] with a given name and value.
-	 */
-	def name[A](value: A, name: String): Named[A] = (name, value)
+  /**
+   * Constructs a [[Named]] with a given name and value.
+   */
+  def name[A](value: A, name: String): Named[A] = (name, value)
 
-	/**
-	 * Provides additional methods to any type of values to construct [[Named]] from.
-	 */
-	implicit class FromVal[+A](val value: A) extends AnyVal {
-		/**
-		 * Names the value.
-		 */
-		def named(name: String): Named[A] = (name, value)
-	}
+  /**
+   * Provides additional methods to any type of values to construct [[Named]] from.
+   */
+  implicit class FromVal[+A](val value: A) extends AnyVal {
+    /**
+     * Names the value.
+     */
+    def named(name: String): Named[A] = (name, value)
+  }
 
-	/**
-	 * Provides additional methods to [[Named]] instances.
-	 */
-	implicit class NamedOps[+A](val named: Named[A]) extends AnyVal {
-		/**
-		 * Retrieves the name.
-		 */
-		def name: String = named._1
+  /**
+   * Provides additional methods to [[Named]] instances.
+   */
+  implicit class NamedOps[+A](val named: Named[A]) extends AnyVal {
+    /**
+     * Retrieves the name.
+     */
+    def name: String = named._1
 
-		/**
-		 * Retrieves the value.
-		 */
-		def value: A     = named._2
-	}
+    /**
+     * Retrieves the value.
+     */
+    def value: A     = named._2
+  }
 }
