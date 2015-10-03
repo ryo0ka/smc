@@ -1,10 +1,45 @@
 #smc
 
-Minecraft NBT (Named Binary Tag) implementation in Scala. This library is developed researching the capacity of the Scala type system, compared to those of Java's and Haskell's. This library is published to show off my understanding to Scala. No attention is paid to the practical I/O performance. If you're here looking for a fine NBT implementation in Scala, I highly recommend you find some C/C++ library, wrap it with some FFI in Java and call it from Scala.
+Named Binary Tags implementation in Scala, wastefully user-friendly and extensible.
 
-	val dat: DataInputStream = ???
-	val ("", NbtMap(root)) = dat.readNbt()
-	val NbtInt(version) = root("version") //Int
+Supports NBT v19132 and v19133, but it is made easy to modify/extend a system.
 
-	val dat: DataOutputStream = ???
-	dat.writeNbt("" -> root)
+Benchmark is not yet done; the efficiency is unclear at the moment.
+
+    // Demonstrates quick construction of a NBT system and its usage.
+    import smc.enum._
+    import smc.named._
+    import smc.polyio._
+    import smc.nbt._
+  
+    // Prepares whatever data type to (de)serialize.
+    class Foo {...}
+  
+    // Implements a NBT system with whatever data types.
+    object TagsImpl extends Tags with DirtyEnum with TagsUI {
+  
+      // Implements (de)serialization methods inside of TagsDef.
+      class TagDefImpl[A] extends AbsTagDef[A] with DirtyElem {...}
+      override type TagDef[A] = TagDefImpl[A]
+  
+      // Lists up whatever desired data types in desired order.
+      val IntTag = new TagDefImpl[Int]
+      val UTFTag = new TagDefImpl[String]
+      val FooTag = new TagDefImpl[Foo]
+      ...
+    }
+  
+    // Imports (de)serialization functionality of defined tags.
+    import TagsImpl._
+  
+    // Prepares fake I/O sources.
+    import java.io.{DataInput, DataOutput}
+    val in: DataInput = {...}
+    val out:: DataOutput = {...}
+  
+    // Deserializes a Foo value named "fooo" from the head of the input source (or fails).
+    val MyFoo = FooTag as "fooo"
+    val MyFoo(foo) = in.readP
+  
+    // Serializes a Foo value named "fooo" to the output source.
+    out.writeP(MyFoo(foo))
