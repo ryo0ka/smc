@@ -1,10 +1,12 @@
 #smc
 
+##smc.nbt
+
 Named Binary Tags implementation in Scala, wastefully user-friendly and extensible.
 
 Supports NBT v19132 and v19133, but it is made easy to modify/extend a system.
 
-Benchmark is not yet done; the efficiency is unclear at the moment.
+Benchmark is not yet done; the performance is unclear at the moment.
 
     // Demonstrates quick construction of a NBT system and its usage.
     import smc.enum._

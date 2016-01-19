@@ -1,32 +1,32 @@
 package smc.nbt
 
-import smc.polyio._
+import smc.binary._
 import smc.enum._
 
 import scala.reflect.runtime.universe._
 
 /** Named Binary Tag v19133 implementation.
   */
-object Tags19133 extends Tags with TagMaps with TaggedArrays with TagsUI with DirtyEnum {
+object Tags19133 extends Tags with TagMaps with TagArrays with TagsOps with DirtyEnum {
 
-  protected trait S[A] extends AbsTagDef[A] with DirtyElem
+  override type TypeDef[A] = TypeDefImpl[A]
+  implicit override val EndDef = new TypeDefImpl[End.type] with End
+  implicit val ByteDef = impl(GetPutByte)
+  implicit val ShortDef = impl(GetPutShort)
+  implicit val IntDef = impl(GetPutInt)
+  implicit val LongDef = impl(GetPutLong)
+  implicit val FloatDef = impl(GetPutFloat)
+  implicit val DoubleDef = impl(GetPutDouble)
+  implicit val BytesDef = impl(new GetPutArray(GetPutByte))
+  implicit val StringDef = impl(GetPutString)
+  implicit val ArrayDef = impl(GetPutTagArray)
+  implicit val MapDef = impl(GetPutTagMap)
+  implicit val IntsDef = impl(new GetPutArray(GetPutInt))
 
-  override type TagDef[A] = S[A]
-
-  protected class SI[A: TypeTag](override val valueIO: PolyIO[A]) extends S[A] {
-    override val ttag = typeTag[A]
+  protected def impl[A: TypeTag](gp: GetPut[A]) = new TypeDefImpl[A] {
+    override val getput = gp
+    override val typ = typeTag[A]
   }
 
-  implicit val EndTag    = new S[End.type] with End
-  implicit val ByteTag   = new SI(ByteIO)
-  implicit val ShortTag  = new SI(ShortIO)
-  implicit val IntTag    = new SI(IntIO)
-  implicit val LongTag   = new SI(LongIO)
-  implicit val FloatTag  = new SI(FloatIO)
-  implicit val DoubleTag = new SI(DoubleIO)
-  implicit val BytesTag  = new SI(new ArrayIO(ByteIO))
-  implicit val StringTag = new SI(StringIO)
-  implicit val ArrayTag  = new SI(TaggedArrayIO)
-  implicit val MapTag    = new SI(new TagMapIO)
-  implicit val IntsTag   = new SI(new ArrayIO(IntIO))
+  protected trait TypeDefImpl[A] extends TypeDefAbs[A] with DirtyElement
 }
